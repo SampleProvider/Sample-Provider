@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Predetermined</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Predetermined</div>
+        <br>
+        [WASD] or Arrow keys to move
+        <br>
+        [E] and [Q] to change levels
+        <br>
+        [Z] to undo, [R] to restart
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+
+            strokeCap(SQUARE);
+            strokeJoin(BEVEL);
+
+            var levels = [
+                [
+                    "wwwwwwwwww",
+                    "w.....w..w",
+                    "w.g...wp.w",
+                    "w........w",
+                    "w.....w.ww",
+                    "w..b.....w",
+                    "wwwwwww..w",
+                    "......w..w",
+                    "......w..w",
+                    "......wwww",
+                ],
+                [
+                    "..........",
+                    "..ww..w...",
+                    "..w...ww..",
+                    ".......w..",
+                    ".gttttt...",
+                    "......t...",
+                    "......nw.w",
+                    ".w..p.t..w",
+                    ".ww...tw.w",
+                    "......ww.w",
+                ],
+                [
+                    "....t.....",
+                    "....t.....",
+                    ".gttt.....",
+                    "....tww...",
+                    "....tw...w",
+                    "..w.tw..ww",
+                    "..wwtttttt",
+                    ".....t....",
+                    "...p.nww..",
+                    ".......www",
+                ],
+                [
+                    "...www.ww.",
+                    ".p.....w..",
+                    ".n........",
+                    ".tt......w",
+                    "..tt.....w",
+                    "...tt....w",
+                    "..w.tt....",
+                    ".ww..tt...",
+                    "......tt..",
+                    ".......g..",
+                ],
+                [
+                    "..........",
+                    "......w...",
+                    "......www.",
+                    "........w.",
+                    "w.........",
+                    "w.g.ttt.w.",
+                    "w.ttt.ttn.",
+                    "...w......",
+                    ".www....p.",
+                    ".w...wwww.",
+                ],
+                [
+                    "w.........",
+                    "w....tttg.",
+                    "w....t....",
+                    "w.www.....",
+                    "w...w....w",
+                    "w.w.....ww",
+                    "w.ww.t....",
+                    "w..w.ttntt",
+                    "......wwp.",
+                    ".......w..",
+                ],
+                [
+                    "..........",
+                    "........wg",
+                    "........wt",
+                    "........wt",
+                    "........wt",
+                    ".........t",
+                    "........wt",
+                    "..wwwwwwwt",
+                    ".ptntttttt",
+                    "wwwwwwww..",
+                ],
+                [
+                    "wwwww..w..",
+                    "....w..w..",
+                    ".wwt.t.w..",
+                    "...t.t.w..",
+                    "...t.t....",
+                    "...t.t.w.g",
+                    "...t.n.w..",
+                    "...n.t.ww.",
+                    ".p......ww",
+                    "..........",
+                ],
+                [
+                    "....w.w..w",
+                    ".p..w.w..g",
+                    "....w.w..w",
+                    "...nw.ww..",
+                    ".w.t......",
+                    "ww.ttttttt",
+                    "..........",
+                    "tttttt.ww.",
+                    ".....n.w..",
+                    ".....t....",
+                ],
+                [
+                    "...www.ww.",
+                    ".p.....w..",
+                    ".n...n....",
+                    ".tt..tt..w",
+                    "..tt..tt.w",
+                    "...tt..ttw",
+                    "..w.tt..tt",
+                    ".ww..tt..t",
+                    "......tt..",
+                    ".g.....tt.",
+                ],
+                [
+                    "..........",
+                    "..ww..w...",
+                    "..w...ww..",
+                    ".......w..",
+                    ".g----z...",
+                    "......|...",
+                    "......bwww",
+                    ".w..p....w",
+                    ".ww....w.w",
+                    "......ww.w",
+                ],
+                [
+                    ".......|..",
+                    ".......|..",
+                    ".......|..",
+                    ".n.n.n.|..",
+                    ".t.t.t.|..",
+                    ".t.t.t.|..",
+                    "tttttt.|..",
+                    ".......|..",
+                    ".p...w.+-g",
+                    ".....--q..",
+                ],
+                [
+                    ".......|..",
+                    ".......|..",
+                    ".......|..",
+                    "tttttt.>tt",
+                    ".t.t.t.|.t",
+                    ".t.t.t.|.t",
+                    ".n.n.n.|.t",
+                    ".......|.n",
+                    ".p...w.|.g",
+                    ".....--q..",
+                ],
+                [
+                    "..c.w..c..",
+                    "..|.w..|..",
+                    "..+.w..|b.",
+                    ".w|....|..",
+                    ".w|....|..",
+                    ".w|.b..|..",
+                    "gw.....+.|",
+                    "ww..p..e..",
+                    ".......www",
+                    ".......w..",
+                ],
+                // [
+                //     "..........",
+                //     "..........",
+                //     "..........",
+                //     "w.......p.",
+                //     "w.........",
+                //     "w...b.....",
+                //     "..........",
+                //     "ww........",
+                //     "w.........",
+                //     ".g.q......",
+                // ],
+                [
+                    "...>++++++",
+                    "...>++++p+",
+                    "vvv+++w+++",
+                    "++++++g+++",
+                    "++++++++++",
+                    "++++++++++",
+                    "++++#++w++",
+                    "+++www#+++",
+                    "++++++++++",
+                    "e#++++++++",
+                ],
+                [
+                    "w....ww...",
+                    "w..g.w....",
+                    "w....w....",
+                    "wc#+zw....",
+                    "w|..|.....",
+                    "we-vq.....",
+                    "wwc...b...",
+                    "..^z..|...",
+                    ".p.b--q...",
+                    "...qw.....",
+                ],
+                [
+                    "..........",
+                    ".|.....|..",
+                    ".>z.||.>z.",
+                    ".eq.eq.||.",
+                    "..........",
+                    "..........",
+                    "wn......nw",
+                    "w........w",
+                    "w.pttttg.w",
+                    "w........w",
+                ],
+            ];
+
+            var debugMode = !true;
+
+            var shakeEnabled = debugMode;
+            var linesEnabled = !debugMode;
+            var linesOn = false;
+
+            var level = level || 0;
+            var maxLevel = maxLevel || 0;
+            maxLevel = levels.length - 1;
+            var w = 10;
+            var h = 10;
+            var s = width / w;
+
+            var wallLines = [];
+
+            var infLoop = false;
+
+            var entities = [];
+            var undoEntities = [];
+            var player = null;
+            var moved = [];
+
+            var resetMoved = function(l) {
+                for (var i = moved.length - 1; i >= l; i--) {
+                    moved[i][0].x = moved[i][1];
+                    moved[i][0].y = moved[i][2];
+                    // if (!debugMode) {
+                    moved[i][0].drawArray.pop();
+                    // }
+                    moved[i][0].moveArray.pop();
+                }
+            };
+
+            var createEntity = function(t, x, y, borders) {
+                var self = {
+                    id: random(),
+                    t: t,
+                    x: x,
+                    y: y,
+                    drawX: x,
+                    drawY: y,
+                    drawArray: [],
+                    moveArray: [[x, y]],
+                    moved: 0,
+                    shake: -1,
+                    borders: borders || [false, false, false, false],
+                    draw: function() {
+                        // self.drawArray = [];
+                        if (self.drawArray.length > 0) {
+                            self.drawX = lerp(self.drawX, self.drawArray[0][0], 0.5);
+                            self.drawY = lerp(self.drawY, self.drawArray[0][1], 0.5);
+                            while (self.drawArray.length > 0 && abs(self.drawX - self.drawArray[0][0]) < 0.25 && abs(self.drawY - self.drawArray[0][1]) < 0.25) {
+                                self.drawX = self.drawArray[0][0];
+                                self.drawY = self.drawArray[0][1];
+                                self.drawArray.shift();
+                            }
+                        }
+                        else {
+                            self.drawX = lerp(self.drawX, self.x, 0.5);
+                            self.drawY = lerp(self.drawY, self.y, 0.5);
+                        }
+                        var x = self.drawX;
+                        var y = self.drawY;
+                        if (self.shake > -1) {
+                            x += sin(self.shake) / 10;
+                            self.shake += 10;
+                            if (self.shake > 360) {
+                                self.shake = -1;
+                            }
+                        }
+                        if (self.t === "p") {
+                            fill(255, 0, 0);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "w") {
+                            fill(0, 0, 0);
+                            rect(x * s, y * s, s, s);
+                            if (self.shake > -1) {
+                                stroke(255, 0, 0, 255 - self.shake / 360 * 255);
+                                strokeWeight(s / 10);
+                                noFill();
+                                line(x * s, y * s + s / 20, x * s + s - 1, y * s + s / 20);
+                                line(x * s, y * s + s * 19 / 20, x * s + s - 1, y * s + s * 19 / 20);
+                                line(x * s + s / 20, y * s + s * 2 / 20, x * s + s / 20, y * s + s * 18 / 20 - 1);
+                                line(x * s + s * 19 / 20, y * s + s * 2 / 20, x * s + s * 19 / 20, y * s + s * 18 / 20 - 1);
+                                noStroke();
+                            }
+                        }
+                        else if (self.t === "b") {
+                            fill(0, 255, 0);
+                            rect(x * s, y * s, s, s);
+                            if (self.shake > -1) {
+                                stroke(255, 0, 0, 255 - self.shake / 360 * 255);
+                                strokeWeight(s / 10);
+                                noFill();
+                                line(x * s, y * s + s / 20, x * s + s - 1, y * s + s / 20);
+                                line(x * s, y * s + s * 19 / 20, x * s + s - 1, y * s + s * 19 / 20);
+                                line(x * s + s / 20, y * s + s * 2 / 20, x * s + s / 20, y * s + s * 18 / 20 - 1);
+                                line(x * s + s * 19 / 20, y * s + s * 2 / 20, x * s + s * 19 / 20, y * s + s * 18 / 20 - 1);
+                                noStroke();
+                            }
+                            // fill(0, 0, 255, 125);
+                            // for (var i in self.moveArray) {
+                            //     rect(self.moveArray[i][0] * s, self.moveArray[i][1] * s, s, s);
+                            // }
+                            if (linesOn) {
+                                fill(0, 255, 255, 125);
+                                stroke(0, 255, 255, 125);
+                                strokeWeight(s / 10);
+                                for (var i in self.moveArray) {
+                                    i = parseInt(i, 10);
+                                    if (i === self.moveArray.length - 1) {
+                                        continue;
+                                    }
+                                    line(self.moveArray[i][0] * s + s / 2, self.moveArray[i][1] * s + s / 2, self.moveArray[i + 1][0] * s + s / 2, self.moveArray[i + 1][1] * s + s / 2);
+                                }
+                                stroke(0, 0, 255, 125);
+                                for (var i in self.moveArray) {
+                                    i = parseInt(i, 10);
+                                    if (i === self.moveArray.length - 1) {
+                                        continue;
+                                    }
+                                    var dx = self.moveArray[i + 1][0] - self.moveArray[i][0];
+                                    var dy = self.moveArray[i + 1][1] - self.moveArray[i][1];
+                                    line(self.moveArray[i + 1][0] * s + s / 2, self.moveArray[i + 1][1] * s + s / 2, self.moveArray[i + 1][0] * s + s / 2 - dx * s / 10 - dy * s / 10, self.moveArray[i + 1][1] * s + s / 2 - dx * s / 10 - dy * s / 10);
+                                    line(self.moveArray[i + 1][0] * s + s / 2, self.moveArray[i + 1][1] * s + s / 2, self.moveArray[i + 1][0] * s + s / 2 - dx * s / 10 + dy * s / 10, self.moveArray[i + 1][1] * s + s / 2 + dx * s / 10 - dy * s / 10);
+                                    // rect(self.moveArray[i][0] * s * 2 / 3 + self.moveArray[i + 1][0] * s * 1 / 3 + s / 3, self.moveArray[i][1] * s * 2 / 3 + self.moveArray[i + 1][1] * s * 1 / 3 + s / 3, s / 3, s / 3);
+                                }
+                                noStroke();
+                            }
+                        }
+                        else if (self.t === "g") {
+                            fill(255, 255, 0);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "t") {
+                            fill(175, 175, 175);
+                            rect(x * s + s / 5, y * s + s / 5, s * 3 / 5, s * 3 / 5);
+                        }
+                        // stroke(125, 125, 125);
+                        // stroke(255, 255, 255);
+                        strokeWeight(s / 10);
+                        stroke(0, 0, 255);
+                        if (self.borders[0]) {
+                            // line(x * s + s / 20, y * s, x * s + s / 20, y * s + s);
+                            // line(x * s + s / 20, y * s + s / 2, x * s + s / 4, y * s + s / 2);
+                            line(x * s, y * s + s / 2, x * s + s / 2, y * s + s / 2);
+                        }
+                        if (self.borders[1]) {
+                            // line(x * s + s * 19 / 20, y * s, x * s + s * 19 / 20, y * s + s);
+                            // line(x * s + s * 19 / 20, y * s + s / 2, x * s + s * 3 / 4, y * s + s / 2);
+                            line(x * s + s, y * s + s / 2, x * s + s / 2, y * s + s / 2);
+                        }
+                        if (self.borders[2]) {
+                            // line(x * s, y * s + s / 20, x * s + s, y * s + s / 20);
+                            // line(x * s + s / 2, y * s + s / 20, x * s + s / 2, y * s + s / 4);
+                            line(x * s + s / 2, y * s, x * s + s / 2, y * s + s / 2);
+                        }
+                        if (self.borders[3]) {
+                            // line(x * s, y * s + s * 19 / 20, x * s + s, y * s + s * 19 / 20);
+                            // line(x * s + s / 2, y * s + s * 19 / 20, x * s + s / 2, y * s + s * 3 / 4);
+                            line(x * s + s / 2, y * s + s, x * s + s / 2, y * s + s / 2);
+                        }
+                        noStroke();
+                    },
+                    isColliding: function(e) {
+                        return self.x === e.x && self.y === e.y;
+                    },
+                    move: function(x, y, forced) {
+                        // forced = false;
+                        // println(self.x + " " + self.y + " " + self.t + " " + forced);
+                        if (self.t === "w") {
+                            return false;
+                        }
+                        if (self.t === "t" || self.t === "g" || self.t === "r") {
+                            return true;
+                        }
+                        for (var i in entities) {
+                            if (entities[i] === self) {
+                                continue;
+                            }
+                            if (entities[i].t !== "r") {
+                                continue;
+                            }
+                            if (self.isColliding(entities[i])) {
+                                if (x === -1) {
+                                    if (entities[i].borders[0]) {
+                                        break;
+                                    }
+                                    if (entities[i].borders[2] && !entities[i].borders[3]) {
+                                        x = 0;
+                                        y = -1;
+                                        break;
+                                    }
+                                    if (entities[i].borders[3] && !entities[i].borders[2]) {
+                                        x = 0;
+                                        y = 1;
+                                        break;
+                                    }
+                                    return false;
+                                }
+                                if (x === 1) {
+                                    if (entities[i].borders[1]) {
+                                        break;
+                                    }
+                                    if (entities[i].borders[2] && !entities[i].borders[3]) {
+                                        x = 0;
+                                        y = -1;
+                                        break;
+                                    }
+                                    if (entities[i].borders[3] && !entities[i].borders[2]) {
+                                        x = 0;
+                                        y = 1;
+                                        break;
+                                    }
+                                    return false;
+                                }
+                                if (y === -1) {
+                                    if (entities[i].borders[2]) {
+                                        break;
+                                    }
+                                    if (entities[i].borders[0] && !entities[i].borders[1]) {
+                                        x = -1;
+                                        y = 0;
+                                        break;
+                                    }
+                                    if (entities[i].borders[1] && !entities[i].borders[0]) {
+                                        x = 1;
+                                        y = 0;
+                                        break;
+                                    }
+                                    return false;
+                                }
+                                if (y === 1) {
+                                    if (entities[i].borders[3]) {
+                                        break;
+                                    }
+                                    if (entities[i].borders[0] && !entities[i].borders[1]) {
+                                        x = -1;
+                                        y = 0;
+                                        break;
+                                    }
+                                    if (entities[i].borders[1] && !entities[i].borders[0]) {
+                                        x = 1;
+                                        y = 0;
+                                        break;
+                                    }
+                                    return false;
+                                }
+                            }
+                        }
+                        moved.push([self, self.x, self.y]);
+                        self.x += x;
+                        self.y += y;
+                        self.drawArray.push([self.x, self.y]);
+                        self.moveArray.push([self.x, self.y]);
+                        self.moved += 1;
+                        if (self.moved > 1000) {
+                            infLoop = true;
+                            return true;
+                        }
+                        if (self.x < 0 || self.x >= w || self.y < 0 || self.y >= h) {
+                            return false;
+                        }
+                        for (var i in entities) {
+                            if (entities[i] === self) {
+                                continue;
+                            }
+                            if (entities[i].t !== "r") {
+                                continue;
+                            }
+                            if (self.isColliding(entities[i])) {
+                                if (x === -1) {
+                                    if (!entities[i].borders[1]) {
+                                        return false;
+                                    }
+                                }
+                                if (x === 1) {
+                                    if (!entities[i].borders[0]) {
+                                        return false;
+                                    }
+                                }
+                                if (y === -1) {
+                                    if (!entities[i].borders[3]) {
+                                        return false;
+                                    }
+                                }
+                                if (y === 1) {
+                                    if (!entities[i].borders[2]) {
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
+                        // if (self.t === "b" || self.t === "p") {
+                        if (self.t === "b") {
+                            for (var i in wallLines) {
+                                if (self.moveArray.length < wallLines[i].length) {
+                                    continue;
+                                }
+                                var x1 = wallLines[i][0][0] - self.moveArray[self.moveArray.length - wallLines[i].length][0];
+                                var y1 = wallLines[i][0][1] - self.moveArray[self.moveArray.length - wallLines[i].length][1];
+                                var worked = true;
+                                for (var j in wallLines[i]) {
+                                    j = parseInt(j, 10);
+                                    var m = self.moveArray[self.moveArray.length - wallLines[i].length + j];
+                                    if (m[0] + x1 !== wallLines[i][j][0] || m[1] + y1 !== wallLines[i][j][1]) {
+                                        worked = false;
+                                        break;
+                                    }
+                                }
+                                // println("SDF" + worked);
+                                if (worked) {
+                                    if (shakeEnabled) {
+                                        for (var j in wallLines[i]) {
+                                            // println(wallLines[i][j]);
+                                            wallLines[i][j][2].shake = 0;
+                                        }
+                                    }
+                                    return false;
+                                }
+                            }
+                        }
+                        for (var i in entities) {
+                            if (entities[i] === self) {
+                                continue;
+                            }
+                            if (entities[i].t === "t" || entities[i].t === "g" || entities[i].t === "r") {
+                                continue;
+                            }
+                            // if (self.t === "b" && entities[i].t === "g") {
+                            //     continue;
+                            // }
+                            if (self.isColliding(entities[i])) {
+                                if (!entities[i].move(x, y, true)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        var w = true;
+                        var l = moved.length;
+                        var m = function() {
+                            resetMoved(l);
+                            // if (forced) {
+                            //     w = false;
+                            //     return false;
+                            // }
+                            // else {
+                                // println(moved.length + " " + l);
+                                // for (var i = moved.length - 1; i >= l; i--) {
+                                //     moved[i][0].x = moved[i][1];
+                                //     moved[i][0].y = moved[i][2];
+                                //     moved[i][0].drawArray.pop();
+                                //     moved[i][0].moveArray.pop();
+                                // }
+                            // }
+                        };
+                        for (var i in entities) {
+                            if (entities[i] === self) {
+                                continue;
+                            }
+                            if (entities[i].t !== "r") {
+                                continue;
+                            }
+                            if (self.isColliding(entities[i])) {
+                                if (!self.move(x, y)) {
+                                    m();
+                                }
+                                break;
+                            }
+                        }
+                        // var j = false;
+                        // for (var i in entities) {
+                        //     if (j) {
+                        //         break;
+                        //     }
+                        //     if (entities[i] === self) {
+                        //         continue;
+                        //     }
+                        //     if (entities[i].t !== "r") {
+                        //         continue;
+                        //     }
+                        //     if (self.isColliding(entities[i])) {
+                        //         if (x === -1) {
+                        //             if (!entities[i].borders[1]) {
+                        //                 return false;
+                        //             }
+                        //             if (entities[i].borders[0] && (j = true) && !self.move(x, y, false)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[2] && !entities[i].borders[3] && (j = true) && !self.move(0, -1)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[3] && !entities[i].borders[2] && (j = true) && !self.move(0, 1)) {
+                        //                 m();
+                        //             }
+                        //         }
+                        //         if (x === 1) {
+                        //             if (!entities[i].borders[0]) {
+                        //                 return false;
+                        //             }
+                        //             if (entities[i].borders[1] && (j = true) && !self.move(x, y)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[2] && !entities[i].borders[3] && (j = true) && !self.move(0, -1)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[3] && !entities[i].borders[2] && (j = true) && !self.move(0, 1)) {
+                        //                 m();
+                        //             }
+                        //         }
+                        //         if (y === -1) {
+                        //             if (!entities[i].borders[3]) {
+                        //                 return false;
+                        //             }
+                        //             if (entities[i].borders[2] && (j = true) && !self.move(x, y)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[0] && !entities[i].borders[1] && (j = true) && !self.move(-1, 0)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[1] && !entities[i].borders[0] && (j = true) && !self.move(1, 0)) {
+                        //                 m();
+                        //             }
+                        //         }
+                        //         if (y === 1) {
+                        //             if (!entities[i].borders[2]) {
+                        //                 return false;
+                        //             }
+                        //             if (entities[i].borders[3] && (j = true) && !self.move(x, y)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[0] && !entities[i].borders[1] && (j = true) && !self.move(-1, 0)) {
+                        //                 m();
+                        //             }
+                        //             else if (entities[i].borders[1] && !entities[i].borders[0] && (j = true) && !self.move(1, 0)) {
+                        //                 m();
+                        //             }
+                        //         }
+                        //     }
+                        // }
+                        // println(self.x + " " + self.y + " " + self.t + " " + forced);
+                        return w;
+                    },
+                };
+                entities.push(self);
+                return self;
+            };
+
+            var calculateWallLines = function() {
+                var grid = [];
+                for (var y = 0; y < h; y++) {
+                    grid[y] = [];
+                    for (var x = 0; x < w; x++) {
+                        // grid[y][x] = [false, false, false, false];
+                        grid[y][x] = false;
+                    }
+                }
+                for (var i in entities) {
+                    if (entities[i].t !== "w" && entities[i].t !== "b") {
+                        continue;
+                    }
+                    // if (entities[i].t === "t") {
+                    //     continue;
+                    // }
+                    if (grid[entities[i].y] === undefined) {
+                        grid[entities[i].y] = [];
+                    }
+                    // grid[entities[i].y][entities[i].x] = entities[i].borders;
+                    grid[entities[i].y][entities[i].x] = entities[i];
+                }
+                wallLines = [];
+                var start = millis();
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        if (grid[y] && grid[y][x]) {
+                            var x1 = x;
+                            var y1 = y;
+                            var line = [[x, y, grid[y][x]]];
+                            var visited = [];
+                            for (var i = 0; i < 100; i++) {
+                                var nx = -1;
+                                var ny = -1;
+                                // if (grid[y1][x1 - 1] && grid[y1][x1 - 1][1]) {
+                                if (grid[y1][x1 - 1]) {
+                                    var cx = x1 - 1;
+                                    var cy = y1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                // if (grid[y1][x1 + 1] && grid[y1][x1 + 1][0]) {
+                                if (grid[y1][x1 + 1]) {
+                                    var cx = x1 + 1;
+                                    var cy = y1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        if (nx !== -1) {
+                                            break;
+                                        }
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                // if (grid[y1 - 1] && grid[y1 - 1][x1] && grid[y1 - 1][x1][3]) {
+                                if (grid[y1 - 1] && grid[y1 - 1][x1]) {
+                                    var cx = x1;
+                                    var cy = y1 - 1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        if (nx !== -1) {
+                                            break;
+                                        }
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                // if (grid[y1 + 1] && grid[y1 + 1][x1] && grid[y1 + 1][x1][2]) {
+                                if (grid[y1 + 1] && grid[y1 + 1][x1]) {
+                                    var cx = x1;
+                                    var cy = y1 + 1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        if (nx !== -1) {
+                                            break;
+                                        }
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                if (nx === -1) {
+                                    if (line.length === 1) {
+                                        break;
+                                    }
+                                    wallLines.push(line);
+                                    // println(line);
+                                    break;
+                                }
+                                visited[x1 + y1 * w] = true;
+                                line.push([nx, ny, grid[ny][nx]]);
+                                x1 = nx;
+                                y1 = ny;
+                            }
+                            if (i === 100) {
+                                println("buh");
+                            }
+                        }
+                    }
+                }
+                /*
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        if (grid[y] && !grid[y][x]) {
+                            var x1 = x;
+                            var y1 = y;
+                            var line = [[x, y]];
+                            var visited = [];
+                            for (var i = 0; i < 100; i++) {
+                                var nx = -1;
+                                var ny = -1;
+                                if (!grid[y1][x1 - 1]) {
+                                    var cx = x1 - 1;
+                                    var cy = y1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                if (!grid[y1][x1 + 1]) {
+                                    var cx = x1 + 1;
+                                    var cy = y1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        if (nx !== -1) {
+                                            break;
+                                        }
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                if (grid[y1 - 1] && !grid[y1 - 1][x1]) {
+                                    var cx = x1;
+                                    var cy = y1 - 1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        if (nx !== -1) {
+                                            break;
+                                        }
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                if (grid[y1 + 1] && !grid[y1 + 1][x1]) {
+                                    var cx = x1;
+                                    var cy = y1 + 1;
+                                    if (visited[cx + cy * w] !== true) {
+                                        if (nx !== -1) {
+                                            break;
+                                        }
+                                        nx = cx;
+                                        ny = cy;
+                                    }
+                                }
+                                if (nx === -1) {
+                                    if (line.length === 1) {
+                                        break;
+                                    }
+                                    wallLines.push(line);
+                                    // println(line);
+                                    break;
+                                }
+                                visited[x1 + y1 * w] = true;
+                                line.push([nx, ny]);
+                                x1 = nx;
+                                y1 = ny;
+                            }
+                            if (i === 100) {
+                                println("buh");
+                            }
+                        }
+                    }
+                }
+                */
+                // println(millis() - start);
+            };
+
+            var loadLevel = function() {
+                if (level === -1) {
+                    w = 10;
+                    h = 10;
+                    s = width / w;
+                    level = 0;
+                    entities = [];
+                    undoEntities = [];
+                    var grid = [];
+                    for (var y = 0; y < h; y++) {
+                        grid[y] = [];
+                        for (var x = 0; x < w; x++) {
+                            grid[y][x] = ".";
+                        }
+                    }
+                    grid[floor(random(h))][floor(random(w))] = "p";
+                    var goals = round(random(1, 4));
+                    for (var i = 0; i < goals; i++) {
+                        var x = floor(random(w));
+                        var y = floor(random(h));
+                        if (grid[y][x] === ".") {
+                            grid[y][x] = "g";
+                        }
+                        else {
+                            i -= 1;
+                        }
+                    }
+                    for (var i = 0; i < goals; i++) {
+                        var x = floor(random(w));
+                        var y = floor(random(h));
+                        if (grid[y][x] === ".") {
+                            grid[y][x] = "b";
+                        }
+                        else {
+                            i -= 1;
+                        }
+                    }
+                    for (var y = 0; y < h; y++) {
+                        for (var x = 0; x < w; x++) {
+                            if (grid[y][x] === ".") {
+                                var t = levels[floor(random(levels.length))][y][x];
+                                if (t !== "p" && t !== "g") {
+                                    grid[y][x] = t;
+                                }
+                            }
+                        }
+                    }
+                    for (var y = 0; y < h; y++) {
+                        for (var x = 0; x < w; x++) {
+                            // level = floor(random() * levels.length);
+                            switch (grid[y][x]) {
+                                case "n":
+                                    createEntity("t", x, y);
+                                    break;
+                                case "t":
+                                    createEntity(grid[y][x], x, y);
+                                    break;
+                                case "g":
+                                    createEntity(grid[y][x], x, y);
+                                    break;
+                                case "|":
+                                    createEntity("r", x, y, [false, false, true, true]);
+                                    break;
+                                case "[":
+                                    createEntity("r", x, y, [false, false, true, true]);
+                                    break;
+                                case "-":
+                                    createEntity("r", x, y, [true, true, false, false]);
+                                    break;
+                                case "q":
+                                    createEntity("r", x, y, [true, false, true, false]);
+                                    break;
+                                case "e":
+                                    createEntity("r", x, y, [false, true, true, false]);
+                                    break;
+                                case "z":
+                                    createEntity("r", x, y, [true, false, false, true]);
+                                    break;
+                                case "c":
+                                    createEntity("r", x, y, [false, true, false, true]);
+                                    break;
+                                case "<":
+                                    createEntity("r", x, y, [true, false, true, true]);
+                                    break;
+                                case ">":
+                                    createEntity("r", x, y, [false, true, true, true]);
+                                    break;
+                                case "^":
+                                    createEntity("r", x, y, [true, true, true, false]);
+                                    break;
+                                case "v":
+                                    createEntity("r", x, y, [true, true, false, true]);
+                                    break;
+                                case "+":
+                                    createEntity("r", x, y, [true, true, true, true]);
+                                    break;
+                                case "#":
+                                    createEntity("r", x, y, [true, true, true, true]);
+                                    break;
+                            }
+                        }
+                    }
+                    for (var y = 0; y < h; y++) {
+                        for (var x = 0; x < w; x++) {
+                            // level = floor(random() * levels.length);
+                            switch (grid[y][x]) {
+                                case "p":
+                                    player = createEntity("p", x, y);
+                                    break;
+                                case "n":
+                                    createEntity("b", x, y);
+                                    break;
+                                case ".":
+                                    break;
+                                case "t":
+                                    break;
+                                case "g":
+                                    break;
+                                case "|":
+                                    break;
+                                case "-":
+                                    break;
+                                case "q":
+                                    break;
+                                case "e":
+                                    break;
+                                case "z":
+                                    break;
+                                case "c":
+                                    break;
+                                case "<":
+                                    break;
+                                case ">":
+                                    break;
+                                case "^":
+                                    break;
+                                case "v":
+                                    break;
+                                case "+":
+                                    break;
+                                case "#":
+                                    createEntity("b", x, y);
+                                    break;
+                                case "[":
+                                    createEntity("b", x, y);
+                                    break;
+                                default:
+                                    createEntity(grid[y][x], x, y);
+                                    break;
+                            }
+                        }
+                    }
+                    level = -1;
+                    calculateWallLines();
+                    var we = true;
+                    for (var i in entities) {
+                        if (entities[i].t !== "g") {
+                            continue;
+                        }
+                        var c = false;
+                        for (var j in entities) {
+                            if (entities[j].t !== "b") {
+                                continue;
+                            }
+                            if (entities[i].isColliding(entities[j])) {
+                                c = true;
+                                break;
+                            }
+                        }
+                        if (!c) {
+                            we = false;
+                            break;
+                        }
+                    }
+                    if (we) {
+                        loadLevel();
+                    }
+                    return;
+                }
+                w = levels[level][0].length;
+                h = levels[level].length;
+                s = width / w;
+                entities = [];
+                undoEntities = [];
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        switch (levels[level][y][x]) {
+                            case "n":
+                                createEntity("t", x, y);
+                                break;
+                            case "t":
+                                createEntity(levels[level][y][x], x, y);
+                                break;
+                            case "g":
+                                createEntity(levels[level][y][x], x, y);
+                                break;
+                            case "|":
+                                createEntity("r", x, y, [false, false, true, true]);
+                                break;
+                            case "[":
+                                createEntity("r", x, y, [false, false, true, true]);
+                                break;
+                            case "-":
+                                createEntity("r", x, y, [true, true, false, false]);
+                                break;
+                            case "q":
+                                createEntity("r", x, y, [true, false, true, false]);
+                                break;
+                            case "e":
+                                createEntity("r", x, y, [false, true, true, false]);
+                                break;
+                            case "z":
+                                createEntity("r", x, y, [true, false, false, true]);
+                                break;
+                            case "c":
+                                createEntity("r", x, y, [false, true, false, true]);
+                                break;
+                            case "<":
+                                createEntity("r", x, y, [true, false, true, true]);
+                                break;
+                            case ">":
+                                createEntity("r", x, y, [false, true, true, true]);
+                                break;
+                            case "^":
+                                createEntity("r", x, y, [true, true, true, false]);
+                                break;
+                            case "v":
+                                createEntity("r", x, y, [true, true, false, true]);
+                                break;
+                            case "+":
+                                createEntity("r", x, y, [true, true, true, true]);
+                                break;
+                            case "#":
+                                createEntity("r", x, y, [true, true, true, true]);
+                                break;
+                        }
+                    }
+                }
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        switch (levels[level][y][x]) {
+                            case "p":
+                                player = createEntity("p", x, y);
+                                break;
+                            case "n":
+                                createEntity("b", x, y);
+                                break;
+                            case ".":
+                                break;
+                            case "t":
+                                break;
+                            case "g":
+                                break;
+                            case "|":
+                                break;
+                            case "-":
+                                break;
+                            case "q":
+                                break;
+                            case "e":
+                                break;
+                            case "z":
+                                break;
+                            case "c":
+                                break;
+                            case "<":
+                                break;
+                            case ">":
+                                break;
+                            case "^":
+                                break;
+                            case "v":
+                                break;
+                            case "+":
+                                break;
+                            case "#":
+                                createEntity("b", x, y);
+                                break;
+                            case "[":
+                                createEntity("b", x, y);
+                                break;
+                            default:
+                                createEntity(levels[level][y][x], x, y);
+                                break;
+                        }
+                    }
+                }
+                calculateWallLines();
+            };
+
+            var addUndo = function() {
+                var e = [];
+                for (var i in entities) {
+                    var e1 = {
+                        t: entities[i].t,
+                        x: entities[i].x,
+                        y: entities[i].y,
+                        moveArray: entities[i].moveArray.length,
+                    };
+                    e.push(e1);
+                }
+                undoEntities.push(e);
+            };
+
+            var time = millis();
+            var repeatTime = 40;
+
+            var win = 0;
+
+            keyPressed = function() {
+                if (linesEnabled && keyCode === 32) {
+                    linesOn = !linesOn;
+                }
+                if (win > 0) {
+                    return;
+                }
+                if (millis() - time < repeatTime) {
+                    return;
+                }
+                time = millis();
+                if (keyCode === 90) {
+                    var e = undoEntities.pop();
+                    for (var i in entities) {
+                        for (var j in e[i]) {
+                            if (j === "moveArray") {
+                                while (entities[i].moveArray.length > e[i][j]) {
+                                    entities[i].moveArray.pop();
+                                }
+                                continue;
+                            }
+                            entities[i][j] = e[i][j];
+                        }
+                        entities[i].drawArray = [];
+                    }
+                    infLoop = false;
+                }
+                if (keyCode === 82) {
+                    loadLevel();
+                    infLoop = false;
+                }
+                if (keyCode === 81) {
+                    level = max(level - 1, -1);
+                    loadLevel();
+                    infLoop = false;
+                }
+                if (keyCode === 69) {
+                    level = min(min(level + 1, levels.length - 1), maxLevel);
+                    loadLevel();
+                    infLoop = false;
+                }
+                if (infLoop) {
+                    return;
+                }
+                if (keyCode >= 37 && keyCode <= 40) {
+                    addUndo();
+                    // keyCode = floor(random(37, 41));
+                }
+                // for (var j in entities) {
+                //     if (entities[j].t !== "p") {
+                //         continue;
+                //     }
+                if (keyCode === 37) {
+                    moved = [];
+                    for (var i in entities) {
+                        entities[i].moved = 0;
+                    }
+                    if (!player.move(-1, 0)) {
+                        undoEntities.pop();
+                        resetMoved(0);
+                    }
+                }
+                if (keyCode === 39) {
+                    moved = [];
+                    for (var i in entities) {
+                        entities[i].moved = 0;
+                    }
+                    if (!player.move(1, 0)) {
+                        undoEntities.pop();
+                        resetMoved(0);
+                    }
+                }
+                if (keyCode === 38) {
+                    moved = [];
+                    for (var i in entities) {
+                        entities[i].moved = 0;
+                    }
+                    if (!player.move(0, -1)) {
+                        undoEntities.pop();
+                        resetMoved(0);
+                    }
+                }
+                if (keyCode === 40) {
+                    moved = [];
+                    for (var i in entities) {
+                        entities[i].moved = 0;
+                    }
+                    if (!player.move(0, 1)) {
+                        undoEntities.pop();
+                        resetMoved(0);
+                    }
+                }
+                // if (keyCode >= 37 && keyCode <= 40) {
+                //     for (var i in entities) {
+                //         // entities[i].drawArray.push([entities[i].x, entities[i].y]);
+                //         // for (var j in entities[i].drawArray) {
+                //         //     var x = entities[i].drawArray[j][0];
+                //         //     var y = entities[i].drawArray[j][1];
+                //         //     entities[i].drawArray[j][0] = 10 - y;
+                //         //     entities[i].drawArray[j][1] = x;
+                //         // }
+                //         var x = entities[i].x;
+                //         var y = entities[i].y;
+                //         entities[i].x = 9 - y;
+                //         entities[i].y = x;
+                //     }
+                // }
+                
+                calculateWallLines();
+                var w = true;
+                for (var i in entities) {
+                    if (entities[i].t !== "g") {
+                        continue;
+                    }
+                    var c = false;
+                    for (var j in entities) {
+                        if (entities[j].t !== "b") {
+                            continue;
+                        }
+                        if (entities[i].isColliding(entities[j])) {
+                            c = true;
+                            break;
+                        }
+                    }
+                    if (!c) {
+                        w = false;
+                        break;
+                    }
+                }
+                if (w) {
+                    win = 120;
+                }
+            };
+
+            loadLevel();
+
+            // textFont(createFont("monospace"));
+            textFont("monospace");
+
+            draw = function() {
+                background(255, 255, 255);
+                noStroke();
+                for (var i in entities) {
+                    entities[i].draw();
+                }
+                if (level === 0) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("predetermined", 180, 480);
+                    textSize(12);
+                    textAlign(LEFT, TOP);
+                    text("oh no its another cursed sokoban", 30, 505);
+                }
+                else if (level === 1) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("pathfinder", s * 1.5, s * 6);
+                }
+                else if (level === 2) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("free", s * 6.5, s * 1);
+                    text("will?", s * 7.5, s * 2);
+                }
+                else if (level === 3) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    var letters = "falling";
+                    for (var i = 0; i < 7; i++) {
+                        text(letters[i], s * 2.75 + i * 0.75 * s, s * 2 + i * 0.75 * s);
+                    }
+                }
+                else if (level === 4) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("against", s * 1, s * 1);
+                    text("the", s * 1.5, s * 2);
+                    text("w i n d", s * 2, s * 3);
+                }
+                else if (level === 5) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("dead", s * 1.5, s * 2);
+                    textAlign(RIGHT, CENTER);
+                    text("end", s * 8.5, s * 4);
+                    textAlign(LEFT, CENTER);
+                    text("?", s * 2, s * 9);
+                    // textSize(12);
+                    // textAlign(CENTER, CENTER);
+                    // text("?", s * 0.5, s * 9.5);
+                    // if (player.x === 0 && player.y === 9) {
+                    //     textAlign(LEFT, CENTER);
+                    //     text("rules are consistent", s * 0.25, s * 8.75);
+                    // }
+                }
+                else if (level === 6) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("backtracking", s * 0.5, s * 1);
+                    textSize(30);
+                    text("i cba to add", s * 0.5, s * 3);
+                    text("decorations here", s * 1.5, s * 3.5);
+                    // text("why is there so much", s * 0.5, s * 3);
+                    // text("e  m  p  t  y", s * 1.5, s * 3.5);
+                    // text("space here... cba", s * 1, s * 4);
+                    // textSize(12);
+                    // textAlign(CENTER, CENTER);
+                    // text("?", s * 7.5, s * 6.5);
+                    // if (player.x === 7 && player.y === 6) {
+                    //     textAlign(LEFT, CENTER);
+                    //     text("rearrange first 3 letters of \"backtracking\"...", s * 2.25, s * 5.75);
+                    //     text("chess battle advanced", s * 2.5, s * 6);
+                    // }
+                }
+                else if (level === 7) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("interference", s * 2.5, s * 9);
+                    textSize(12);
+                    textAlign(LEFT, CENTER);
+                    text("blue sliders moment", s * 2.75, s * 9.5);
+                }
+                else if (level === 8) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("double", s * 0.5, s * 8.625);
+                    text("trouble", s * 1.5, s * 9.5);
+                    textSize(12);
+                    textAlign(LEFT, CENTER);
+                    text("this level is VERY annoying.", s * 6.5, s * 9.25);
+                    text("you can skip it if you", s * 6.5, s * 9.5);
+                    text("understand the rule.", s * 6.5, s * 9.75);
+                }
+                else if (level === 9) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    var letters = "falling 2";
+                    for (var i = 0; i < 9; i++) {
+                        text(letters[i], s * 2.75 + i * 0.75 * s, s * 2 + i * 0.75 * s);
+                    }
+                }
+                else if (level === 10) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("railfinder", s * 1.5, s * 6);
+                }
+                else if (level === 11) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("intersection", s * 0.5, s * 1);
+                }
+                else if (level === 12) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("outer section", s * 0.5, s * 1);
+                }
+                else if (level === 13) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("overshooting", s * 0.5, s * 9);
+                }
+                else if (level === 14) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("ice", s * 0.5, s * 0.75);
+                    text("maze", s * 1, s * 1.75);
+                }
+                else if (level === 15) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(LEFT, CENTER);
+                    text("infinite", s * 6.5, s * 2);
+                    text("loop", s * 7, s * 3);
+                }
+                else if (level === 16) {
+                    fill(0, 0, 0);
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("yoou wan", s * 5, s * 5);
+                    text("thinks for\nplaing", s * 5, s * 6.5);
+                }
+                if (level >= 9) {
+                    // shakeEnabled = true;
+                    // linesEnabled = true;
+                }
+                if (infLoop) {
+                    fill(255, 0, 255);
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("[e] end    [a] aestart", width / 2, 40);
+                    text("[w] win    [h] big ", width / 2, 100);
+                    textSize(100);
+                    text("H", width / 2 + 240, 100);
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("[z] zestart  [b] buhstart", width / 2, 160);
+                    text("[q] drop   [ctrl+d] ads", width / 2, 220);
+                    text("[]] corruption pixel", width / 2, 280);
+                    text("[s] save    [;] end line", width / 2, 340);
+                    text("[f5] change perspective", width / 2, 400);
+                    pushMatrix();
+                    translate(width / 2, 480);
+                    rotate(90);
+                    textSize(200);
+                    text("8", 0, 0);
+                    popMatrix();
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text(">1000 loop", width / 2, 540);
+                }
+                if (win > 0) {
+                    fill(255, 0, 255);
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("you win", width / 2, height / 2);
+                    win -= 1;
+                    if (win === 0) {
+                        if (level !== -1) {
+                            level = min(level + 1, levels.length - 1);
+                            maxLevel = max(level, maxLevel);
+                        }
+                        loadLevel();
+                    }
+                }
+            };
+        };
+    </script>
+</body>
+
+</html>

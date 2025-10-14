@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Piston Flip</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Piston Flip</div>
+        <br>
+        [WASD] or Arrow keys to move
+        <br>
+        [Z] to undo, [R] to restart
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+
+
+            // var loopProtector = function(){
+            //     return this;
+            // }().LoopProtector.prototype.leave = function(){};
+
+            var colors = ["#dda963", "#c9814b", "#25272a", "#dbc1af", "#cf6a4f", "#e0b94a", "#b2af5c", "#a7a79e", "#9b6970"];
+
+            var parseColor = function(c) {
+                return color(parseInt(c.substring(1, 3), 16), parseInt(c.substring(3, 5), 16), parseInt(c.substring(5, 7), 16));
+            };
+
+
+            var grid = [
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "            ww             pcw",
+                // "                   ^v      wh ",
+                // "wwwwwwwwwwwhw      ><      w  ",
+                // " < w      w                w h",
+                // "   w  >  ^              w  ",
+                // "wwww ^ v w               www",
+                // "  w   <  wwwwwhwwwww <wwww  w ",
+                // "  w      ww      wwgwvwww  w  ",
+                // "v w      w   w   ww <  w      ",
+                // "^ ch     wh  w  ^ @ w  wh     ",
+                // "  w       cwww  w   w   cw    ",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "            ww   h     ww   cw",
+                // "                  wwww cv  wh ",
+                // "wwwwwwwwwwwhw        www   w  ",
+                // " > w     ww        <       w h",
+                // "   w  >  vw                w  ",
+                // "wwww ^ v                   www",
+                // "  w   <  wwwwwhwwwww <www  w  ",
+                // "  w     ww      wwgwvwww  ww  ",
+                // "v w     w   w   ww <  w       ",
+                // "^ ch    wh  w  ^ p w  wh   v  ",
+                // "  w      cwww  w   w   cw     ",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                "            ww   h     ww   cw",
+                "                  wwww cv  wh ",
+                "wwwwwwwwwwwhw        www   w  ",
+                " < w      w        <       w h",
+                "   w  >  ^                 w  ",
+                "wwww ^ v w                 www",
+                "  ww  <  wwwwwhwwwww <www  w  ",
+                "  ww    ww      wwgwvwww  ww  ",
+                "v w     w   w   ww <  w       ",
+                "^ ch     h  w  ^ p w  wh      ",
+                "   w     cwww  w   w   cw     ",
+                "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            // "                           p w",
+                // "                           wh ",
+                // "www w <>                   w  ",
+                // "                           w h",
+                // "wwwwwwwwwwwwwww            w  ",
+                // " ^ w     ww           wwwwwwwww",
+                // "   w  >  v                    ",
+                // "wwww ^ v  wwwwww              ",
+                // "  ww  <  wwwww wwwww <www  www",
+                // "  ww    ww      wwgwvwwww     ",
+                // "v w     w   w   ww <  w       ",
+                // "^  h     h  w  ^ @ w  wh      ",
+                // "   w      www  w   w    w     ",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "    <>                     ww ",
+                // "                           w h",
+                // "www w <>                   w  ",
+                // "                           w  ",
+                // "wwwwwwwwwwwwwww            wh ",
+                // "   w     ww    <           wpw",
+                // " v w  >  v        ^           ",
+                // "wwww ^ v  wwwwww              ",
+                // " www  <  wwwww wwwww <www  www",
+                // "  ww    ww      wwgwvwwww     ",
+                // "v w     w   w   ww <  w       ",
+                // "^  h     h  w  ^ @ w  wh      ",
+                // "   w      www  w   w    w     ",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+                // " w                            ",
+                // " w                            ",
+                // " w                            ",
+                // "       wwwwwww                ",
+                // "       w     ww               ",
+                // "   <         w                ",
+                // "   w   w^   ^                 ",
+                // "   w    hw  wwww              ",
+                // "   w   wwwwww  w              ",
+                // "   w   ww      wwww           ",
+                // "   w   w   w   ww <b          ",
+                // "     ^  h  w  ^ p w           ",
+                // "   w     www  w   w           ",
+                // "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            ];
+            var w = 30;
+            var h = 13;
+            var s = width / w;
+
+            var entities = [];
+            var undoEntities = [];
+            var player = null;
+            var moved = [];
+            var createEntity = function(t, x, y, dir) {
+                var self = {
+                    t: t,
+                    x: x,
+                    y: y,
+                    drawX: x,
+                    drawY: y,
+                    drawWidth: 1,
+                    drawHeight: 1,
+                    drawArray: [],
+                    width: 1,
+                    height: 1,
+                    dir: dir,
+                    flipped: false,
+                    draw: function() {
+                        if (self.drawArray.length > 0) {
+                            if (abs(self.drawX - self.drawArray[0][0]) > s) {
+                                if (self.drawX < self.drawArray[0][0]) {
+                                    self.drawX += w;
+                                    self.drawY = h - 1 - self.drawY;
+                                }
+                                else if (self.drawX > self.drawArray[0][0]) {
+                                    self.drawX -= w;
+                                    self.drawY = h - 1 - self.drawY;
+                                }
+                            }
+                            self.drawX = lerp(self.drawX, self.drawArray[0][0], 0.5);
+                            self.drawY = lerp(self.drawY, self.drawArray[0][1], 0.5);
+                            self.drawWidth = lerp(self.drawWidth, self.drawArray[0][2], 0.5);
+                            self.drawHeight = lerp(self.drawHeight, self.drawArray[0][3], 0.5);
+                            while (self.drawArray.length > 0 && abs(self.drawX - self.drawArray[0][0]) < 0.25 && abs(self.drawY - self.drawArray[0][1]) < 0.25 && abs(self.drawWidth - self.drawArray[0][2]) < 0.25 && abs(self.drawHeight - self.drawArray[0][3]) < 0.25) {
+                                self.drawX = self.drawArray[0][0];
+                                self.drawY = self.drawArray[0][1];
+                                self.drawWidth = self.drawArray[0][2];
+                                self.drawHeight = self.drawArray[0][3];
+                                self.drawArray.shift();
+                            }
+                        }
+                        else {
+                            self.drawX = lerp(self.drawX, self.x, 0.5);
+                            self.drawY = lerp(self.drawY, self.y, 0.5);
+                            self.drawWidth = lerp(self.drawWidth, self.width, 0.5);
+                            self.drawHeight = lerp(self.drawHeight, self.height, 0.5);
+                        }
+                        var x = self.drawX;
+                        var y = self.drawY;
+                        var width = self.drawWidth;
+                        var height = self.drawHeight;
+                        var d = function() {
+                            if (self.t === "p") {
+                                // fill(255, 0, 0);
+                                fill(parseColor(colors[8]));
+                                rect(x * s, y * s, s, s);
+                                // rect((x + w) * s, (h - 1 - y) * s, s, s);
+                                // rect((x - w) * s, (h - 1 - y) * s, s, s);
+                            }
+                            else if (self.t === "w") {
+                                // fill(75, 75, 75);
+                                fill(parseColor(colors[7]));
+                                rect(x * s, y * s, s, s);
+                            }
+                            else if (self.t === "b") {
+                                fill(200, 200, 200);
+                                rect(x * s, y * s, s, s);
+                            }
+                            else if (self.t === "h") {
+                                // fill(0, 0, 0);
+                                fill(parseColor(colors[2]));
+                                rect(x * s, y * s, s, s);
+                            }
+                            else if (self.t === "m") {
+                                if (self.dir === 0) {
+                                    fill(parseColor(colors[1]));
+                                    rect(x * s, y * s + s / 3, width * s, height * s / 3);
+                                    fill(parseColor(colors[4]));
+                                    rect(x * s + width * s - s * 3 / 4, y * s, s * 3 / 4, height * s);
+                                    fill(parseColor(colors[0]));
+                                    rect(x * s, y * s, s / 4, height * s);
+                                    // if (width !== 1 || height !== 1) {
+                                    //     fill(255, 0, 0, (width - 1) * 255);
+                                    //     rect(x * s + width * s - s / 3, y * s + s / 3, s / 3, s / 3);
+                                    // }
+                                }
+                                if (self.dir === 1) {
+                                    fill(parseColor(colors[1]));
+                                    rect(x * s, y * s + s / 3, width * s, height * s / 3);
+                                    fill(parseColor(colors[4]));
+                                    rect(x * s, y * s, s * 3 / 4, height * s);
+                                    fill(parseColor(colors[0]));
+                                    rect(x * s + width * s - s / 4, y * s, s / 4, height * s);
+                                }
+                                if (self.dir === 2) {
+                                    fill(parseColor(colors[1]));
+                                    rect(x * s + s / 3, y * s, width * s / 3, height * s);
+                                    fill(parseColor(colors[4]));
+                                    rect(x * s, y * s + height * s - s * 3 / 4, width * s, s * 3 / 4);
+                                    fill(parseColor(colors[0]));
+                                    rect(x * s, y * s, width * s, s / 4);
+                                }
+                                if (self.dir === 3) {
+                                    fill(parseColor(colors[1]));
+                                    rect(x * s + s / 3, y * s, width * s / 3, height * s);
+                                    fill(parseColor(colors[4]));
+                                    rect(x * s, y * s, width * s, s * 3 / 4);
+                                    fill(parseColor(colors[0]));
+                                    rect(x * s, y * s + height * s - s / 4, width * s, s / 4);
+                                }
+                                // fill(0, 255, 0);
+                                // rect(x * s, y * s, width * s, height * s);
+                                // rect((x - w) * s, (h - 1 - y) * s, width * s, height * s);
+                                // rect((x + w) * s, (h - 1 - y) * s, width * s, height * s);
+                            }
+                            else if (self.t === "g") {
+                                fill(parseColor(colors[6]));
+                                rect(x * s, y * s, s, s);
+                            }
+                            else if (self.t === "c") {
+                                fill(parseColor(colors[6]));
+                                rect(x * s + s / 4, y * s + s / 4, s / 2, s / 2);
+                            }
+                        };
+                        d();
+                        push();
+                        translate(w * s, h * s / 2);
+                        scale(1, -1);
+                        translate(0, -h * s / 2);
+                        d();
+                        pop();
+                        push();
+                        translate(-w * s, h * s / 2);
+                        scale(1, -1);
+                        translate(0, -h * s / 2);
+                        d();
+                        pop();
+                        // x = self.x;
+                        // y = self.y;
+                    },
+                    isColliding: function(e) {
+                        return (self.x + self.width > e.x && self.x < e.x + e.width && self.y + self.height > e.y && self.y < e.y + e.height) || (self.x + self.width + w > e.x && self.x + w < e.x + e.width && h - 1 - self.y + self.height > e.y && h - 1 - self.y < e.y + e.height) || (self.x + self.width - w > e.x && self.x - w < e.x + e.width && h - 1 - self.y + self.height > e.y && h - 1 - self.y < e.y + e.height);
+                        // return (self.x + self.width > e.x && self.x < e.x + e.width && self.y + self.height > e.y && self.y < e.y + self.height);
+                    },
+                    setPosition: function() {
+                        if (self.x >= w) {
+                            self.x -= w;
+                            self.y = h - 1 - self.y - self.height + 1;
+                            if (self.dir === 2) {
+                                self.dir = 3;
+                            }
+                            else if (self.dir === 3) {
+                                self.dir = 2;
+                            }
+                        }
+                        if (self.x < 0) {
+                            self.x += w;
+                            self.y = h - 1 - self.y - self.height + 1;
+                            if (self.dir === 2) {
+                                self.dir = 3;
+                            }
+                            else if (self.dir === 3) {
+                                self.dir = 2;
+                            }
+                        }
+                    },
+                    move: function(x, y) {
+                        if (self.t === "w") {
+                            return false;
+                        }
+                        if (self.t === "h" || self.t === "g" || self.t === "c") {
+                            return true;
+                        }
+                        moved.push([self, self.x, self.y]);
+                        self.x += x;
+                        self.y += y;
+                        self.setPosition();
+                        self.drawArray.push([self.x, self.y, self.width, self.height]);
+                        for (var i in entities) {
+                            if (entities[i] === self) {
+                                continue;
+                            }
+                            if (entities[i].t === "h" || entities[i].t === "g" || entities[i].t === "c") {
+                                continue;
+                            }
+                            if (self.isColliding(entities[i]) || entities[i].isColliding(self)) {
+                                if (!entities[i].move(x, y)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    },
+                    update: function() {
+                        if (self.t === "m") {
+                            var x = 0;
+                            var y = 0;
+                            if (self.dir === 0) {
+                                x = -1;
+                            }
+                            else if (self.dir === 1) {
+                                x = 1;
+                            }
+                            else if (self.dir === 2) {
+                                y = -1;
+                            }
+                            else if (self.dir === 3) {
+                                y = 1;
+                            }
+                            self.x -= x;
+                            self.y -= y;
+                            self.setPosition();
+                            // var w = self.width;
+                            // var h = self.height;
+                            // self.width = 1;
+                            // self.height = 1;
+                            var activated = false;
+                            for (var i in entities) {
+                                if (entities[i] === self) {
+                                    continue;
+                                }
+                                if (entities[i].t === "h" || entities[i].t === "g" || entities[i].t === "c") {
+                                    continue;
+                                }
+                                if (self.isColliding(entities[i])) {
+                                    activated = true;
+                                    break;
+                                }
+                            }
+                            self.x += x;
+                            self.y += y;
+                            self.setPosition();
+                            // self.width = w;
+                            // self.height = h;
+                            var lastActivated = false;
+                            if (self.width !== 1 || self.height !== 1) {
+                                lastActivated = true;
+                            }
+                            if (activated === lastActivated) {
+                                return;
+                            }
+                            var a = 1;
+                            if (activated) {
+                                self.width = 1;
+                                self.height = 1;
+                                self.width += abs(x) * a;
+                                self.height += abs(y) * a;
+                                self.x += min(x, 0) * a;
+                                self.y += min(y, 0) * a;
+                            self.setPosition();
+                            // println(self.x + " " + self.y + " " + self.width + " " + self.height);
+                                moved = [];
+                                var worked = true;
+                                for (var i in entities) {
+                                    if (entities[i] === self) {
+                                        continue;
+                                    }
+                                    if (self.isColliding(entities[i])) {
+                                        if (!entities[i].move(x, y)) {
+                                            for (var i in moved) {
+                                                moved[i][0].x = moved[i][1];
+                                                moved[i][0].y = moved[i][2];
+                                                moved[i][0].drawArray.pop();
+                                                moved[i][0].setPosition();
+                                            }
+                                            self.width = 1;
+                                            self.height = 1;
+                                            self.x -= min(x, 0) * a;
+                                            self.y -= min(y, 0) * a;
+                                            self.setPosition();
+                                            worked = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!worked) {
+                                    self.width = 1;
+                                    self.height = 1;
+                                    self.width += abs(x) * a;
+                                    self.height += abs(y) * a;
+                                    self.x -= max(x, 0) * a;
+                                    self.y -= max(y, 0) * a;
+                                    self.setPosition();
+                                    moved = [];
+                                    for (var i in entities) {
+                                        if (entities[i] === self) {
+                                            continue;
+                                        }
+                                        if (self.isColliding(entities[i])) {
+                                            if (!entities[i].move(-x, -y)) {
+                                                for (var i in moved) {
+                                                    moved[i][0].x = moved[i][1];
+                                                    moved[i][0].y = moved[i][2];
+                                                    moved[i][0].drawArray.pop();
+                                                    moved[i][0].setPosition();
+                                                }
+                                                self.width = 1;
+                                                self.height = 1;
+                                                self.x += max(x, 0) * a;
+                                                self.y += max(y, 0) * a;
+                                                self.setPosition();
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                self.width = 1;
+                                self.height = 1;
+                                self.x -= min(x, 0) * a;
+                                self.y -= min(y, 0) * a;
+                                self.setPosition();
+                            }
+                            self.drawArray.push([self.x, self.y, self.width, self.height]);
+                        }
+                    },
+                };
+                // self.x += 15;
+                // self.setPosition();
+                entities.push(self);
+                return self;
+            };
+
+            for (var y = 0; y < h; y++) {
+                for (var x = 0; x < w; x++) {
+                    switch (grid[y][x]) {
+                        case "h":
+                            createEntity("h", x, y);
+                            break;
+                        case "c":
+                            createEntity("c", x, y);
+                            break;
+                    }
+                }
+            }
+            for (var y = 0; y < h; y++) {
+                for (var x = 0; x < w; x++) {
+                    switch (grid[y][x]) {
+                        case "p":
+                            player = createEntity("p", x, y);
+                            break;
+                        case "b":
+                            createEntity("b", x, y);
+                            break;
+                        case "w":
+                            createEntity("w", x, y);
+                            break;
+                        case "<":
+                            createEntity("m", x, y, 0);
+                            break;
+                        case ">":
+                            createEntity("m", x, y, 1);
+                            break;
+                        case "^":
+                            createEntity("m", x, y, 2);
+                            break;
+                        case "v":
+                            createEntity("m", x, y, 3);
+                            break;
+                        case "g":
+                            createEntity("g", x, y);
+                            break;
+                    }
+                }
+            }
+
+            var gameOver = false;
+            var win = false;
+
+            var addUndo = function() {
+                var e = [];
+                for (var i in entities) {
+                    var e1 = {
+                        t: entities[i].t,
+                        x: entities[i].x,
+                        y: entities[i].y,
+                        width: entities[i].width,
+                        height: entities[i].height,
+                        dir: entities[i].dir,
+                    };
+                    e.push(e1);
+                }
+                undoEntities.push(e);
+            };
+
+            var time = millis();
+            var repeatTime = 40;
+
+            var checkpoints = [];
+
+            keyPressed = function() {
+                if (millis() - time < repeatTime) {
+                    return;
+                }
+                time = millis();
+                if (keyCode === 90) {
+                    var e = undoEntities.pop();
+                    for (var i in entities) {
+                        for (var j in e[i]) {
+                            entities[i][j] = e[i][j];
+                        }
+                    }
+                    gameOver = false;
+                }
+                if (keyCode === 82) {
+                    var e = checkpoints[checkpoints.length - 1];
+                    for (var i in entities) {
+                        for (var j in e[i]) {
+                            entities[i][j] = e[i][j];
+                        }
+                    }
+                    gameOver = false;
+                    // Program.restart();
+                }
+                if (gameOver) {
+                    return;
+                }
+                if (keyCode >= 37 && keyCode <= 40) {
+                    addUndo();
+                }
+                if (keyCode === 37) {
+                    moved = [];
+                    if (!player.move(-1, 0)) {
+                        // undoEntities.pop();
+                        for (var i in moved) {
+                            moved[i][0].x = moved[i][1];
+                            moved[i][0].y = moved[i][2];
+                            moved[i][0].drawArray.pop();
+                            moved[i][0].setPosition();
+                        }
+                    }
+                }
+                if (keyCode === 39) {
+                    moved = [];
+                    if (!player.move(1, 0)) {
+                        for (var i in moved) {
+                            moved[i][0].x = moved[i][1];
+                            moved[i][0].y = moved[i][2];
+                            moved[i][0].drawArray.pop();
+                            moved[i][0].setPosition();
+                        }
+                    }
+                }
+                if (keyCode === 38) {
+                    moved = [];
+                    if (!player.move(0, -1)) {
+                        for (var i in moved) {
+                            moved[i][0].x = moved[i][1];
+                            moved[i][0].y = moved[i][2];
+                            moved[i][0].drawArray.pop();
+                            moved[i][0].setPosition();
+                        }
+                    }
+                }
+                if (keyCode === 40) {
+                    moved = [];
+                    if (!player.move(0, 1)) {
+                        for (var i in moved) {
+                            moved[i][0].x = moved[i][1];
+                            moved[i][0].y = moved[i][2];
+                            moved[i][0].drawArray.pop();
+                            moved[i][0].setPosition();
+                        }
+                    }
+                }
+                for (var j = 0; j < 10; j++) {
+                    for (var i in entities) {
+                        entities[i].update();
+                    }
+                }
+                for (var i in entities) {
+                    if (entities[i].t === "h") {
+                        continue;
+                    }
+                    var a = 0;
+                    for (var j in entities) {
+                        if (entities[j].t !== "h") {
+                            continue;
+                        }
+                        if (entities[i].isColliding(entities[j])) {
+                            a += 1;
+                        }
+                    }
+                    if (a === entities[i].width * entities[i].height) {
+                        if (entities[i] === player) {
+                            gameOver = true;
+                        }
+                        entities[i].y = 100;
+                    }
+                }
+                for (var i in entities) {
+                    if (entities[i].t !== "g") {
+                        continue;
+                    }
+                    for (var j in entities) {
+                        if (entities[j].t !== "p") {
+                            continue;
+                        }
+                        if (entities[i].isColliding(entities[j])) {
+                            win = true;
+                        }
+                    }
+                }
+                for (var i in entities) {
+                    if (entities[i].t !== "c") {
+                        continue;
+                    }
+                    for (var j in entities) {
+                        if (entities[j].t !== "p") {
+                            continue;
+                        }
+                        if (entities[i].isColliding(entities[j])) {
+                            addUndo();
+                            checkpoints.push(undoEntities.pop());
+                            entities[i].y = 101;
+                        }
+                    }
+                }
+            };
+            for (var j = 0; j < 10; j++) {
+                for (var i in entities) {
+                    entities[i].update();
+                }
+            }
+            addUndo();
+            checkpoints.push(undoEntities.pop());
+
+            var r = 0;
+
+            draw = function() {
+                // background(255, 255, 255);
+                // background(parseColor("#dbc1af"));
+                background(parseColor(colors[2]));
+                if (win) {
+                    push();
+                    translate(width / 2, height / 2);
+                    r += noise(millis() / 10000) - 0.5;
+                    rotate(r * 30);
+                    translate(-width / 2, -height / 2);
+                    if (random() < 0.05) {
+                        createEntity("m", floor(random() * w), floor(random() * h), floor(random() * 4));
+                    }
+                }
+                translate(0, (height - h * s) / 2);
+                fill(parseColor(colors[3]));
+                rect(-width, 0, width * 3, h * s);
+                noStroke();
+                for (var i in entities) {
+                    entities[i].draw();
+                }
+                // for (var i = 0; i < colors.length; i++) {
+                //     fill(parseColor(colors[i]));
+                //     rect(i * 50, 300, 50, 50);
+                // }
+                translate(0, -(height - h * s) / 2);
+                if (gameOver) {
+                    fill(parseColor(colors[3]));
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("[z] undo    [r] restart", width / 2, 70);
+                }
+                fill(parseColor(colors[5]));
+                textSize(40);
+                textAlign(CENTER, CENTER);
+                text("piston flip", width / 2, 130);
+                if (win) {
+                    fill(parseColor(colors[6]));
+                    textSize(40);
+                    textAlign(CENTER, CENTER);
+                    text("you win", width / 2, height - 100);
+                }
+            };
+        };
+    </script>
+</body>
+
+</html>

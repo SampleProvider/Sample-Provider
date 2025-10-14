@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Eyesight</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Eyesight</div>
+        <br>
+        [WASD] or Arrow keys to move
+        <br>
+        [Space] or click to interact
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+
+            /**
+             * 
+             * EYESIGHT
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * usaco zombie horse spawn egg
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             * 
+             *
+            **/
+
+
+            // var loopProtector = function(){
+            //     return this;
+            // }().LoopProtector.prototype.leave = function(){};
+
+            strokeCap(ROUND);
+            strokeJoin(ROUND);
+
+            // textFont(createFont("monospace"));
+            textFont("monospace");
+
+            var debugMode = false;
+
+            var level = {
+                "0:0": {
+                    grid: [
+                        "wwwwddwwww",
+                        "w........w",
+                        "w...01...w",
+                        "w...vv...w",
+                        "w.1>tt...w",
+                        "r........w",
+                        "wwwwww...w",
+                        ".....w.p.w",
+                        "....[f...w",
+                        ".....wwwww",
+                    ],
+                    puzzles: ["t1", "t1", "t1"],
+                    doors: [[1, "t", -1, 0], [1, "t", 1, 0]],
+                    signs: [],
+                },
+                "0:-1": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "....ww0>tt",
+                        ".112ww1>tt",
+                        ".vvv....^^",
+                        ".ttt....01",
+                        ".ttt....ww",
+                        ">ttt....11",
+                        "........vv",
+                        "......1>tt",
+                        "......1>tt",
+                    ],
+                    puzzles: ["t2", "t2", "t4", "t4", "t4", "t2", "t2", "t4", "t3", "t3", "t3", "t3"],
+                    doors: [],
+                    signs: [],
+                },
+                "-1:-1": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "55w3>tttw.",
+                        "15w3>tttw.",
+                        "........d.",
+                        "........d.",
+                        "ddddddddw.",
+                        "........d1",
+                        "........d.",
+                        "22w1>tttw.",
+                        "1.w2>tttw.",
+                    ],
+                    puzzles: ["c1", "c1", "c2", "c2"],
+                    doors: [[4, "t", 0, -1], [4, "t", 0, -2], [4, "c", 8, 0], [4, "c", 7, 0], [4, "c", 6, 0], [4, "c", 5, 0], [4, "c", 4, 0], [4, "c", 3, 0], [4, "c", 2, 0], [4, "c", 1, 0], [4, "t", 0, 2], [4, "t", 0, 1]],
+                    signs: [],
+                },
+                "-2:-1": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "3..wttttt<",
+                        "33.wttttt<",
+                        "vv.d......",
+                        "tt.d......",
+                        "tt.wdddddd",
+                        "tt.d......",
+                        "tt.d......",
+                        "...wttttt<",
+                        "...wttttt<",
+                    ],
+                    puzzles: ["c3", "c3", "c5", "c5", "c4", "c4"],
+                    doors: [[4, "c", 0, -1], [4, "c", 0, -2], [4, "c", 14, 0], [4, "c", 13, 0], [4, "c", 12, 0], [4, "c", 11, 0], [4, "c", 10, 0], [4, "c", 9, 0], [4, "c", 0, 2], [4, "c", 0, 1]],
+                    signs: [],
+                },
+                "-3:-1": {
+                    grid: [
+                        "wwwwwwwddd",
+                        "t<1w.....3",
+                        "t<2w....33",
+                        "t<4w....vv",
+                        "...d..3>tt",
+                        "b..d.33>tt",
+                        "...d.33>tt",
+                        "t<5w..3>tt",
+                        "t<1w......",
+                        "t<5w......",
+                    ],
+                    puzzles: ["b1", "b1", "b1", "c5", "c5", "c5", "c5", "c5", "b2", "c5", "b2", "b2"],
+                    doors: [[5, "c", -1, 0], [5, "c", -2, 0], [5, "c", -3, 0], [5, "c", 0, -1], [5, "c", 0, -2], [5, "c", 0, -3]],
+                    signs: [],
+                },
+                "-3:-2": {
+                    grid: [
+                        "tttw^.....",
+                        "tttw1.....",
+                        "tttw1.....",
+                        "tttw1.....",
+                        "tttwwwwddd",
+                        "tttwttt<1>",
+                        "w.^wt.t<3>",
+                        "wb8wttt<3>",
+                        "w.8w...www",
+                        "..8r......",
+                    ],
+                    grid2: [
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..i.......",
+                        "..i.......",
+                        "..i.......",
+                        "..i.......",
+                    ],
+                    grass: [0, 0, 3, 10],
+                    puzzles: ["g3", "g1", "g2", "p6", "g1", "g2", "g1", "g2"],
+                    doors: [[2, "g", -1, 0], [2, "g", -2, 0], [2, "g", -3, 0]],
+                    signs: [],
+                },
+                "-2:-2": {
+                    grid: [
+                        ".ttw......",
+                        ".^^w......",
+                        ".22w......",
+                        ".11w......",
+                        "wwww......",
+                        "tttw......",
+                        "tttw......",
+                        ".t.w......",
+                        "...w......",
+                        "...r......",
+                    ],
+                    puzzles: ["g5", "g5"],
+                    doors: [],
+                    signs: [],
+                },
+                "-3:-3": {
+                    grid: [
+                        "<.3w.v....",
+                        "<.5wtt.ttt",
+                        "wvvwtt.ttt",
+                        "wttwtt.ttt",
+                        "wttw...ttt",
+                        "wttwt..ttt",
+                        "wttwt<1...",
+                        "wttwt.....",
+                        "wwwwt.....",
+                        "tttwt.....",
+                    ],
+                    grass: [0, 0, 3, 10],
+                    puzzles: ["p4", "g4", "p4", "p5", "p5", "g3"],
+                    doors: [],
+                    signs: [],
+                },
+                "-2:-3": {
+                    grid: [
+                        "...w......",
+                        "<31w......",
+                        "<31w......",
+                        "<31w......",
+                        "<31w......",
+                        "<30w......",
+                        ".www......",
+                        ".t.w......",
+                        ".ttw......",
+                        "...w......",
+                    ],
+                    puzzles: ["g6", "g6", "g6", "g6", "g6"],
+                    doors: [],
+                    signs: [],
+                },
+                "-3:-4": {
+                    grid: [
+                        "..........",
+                        "..........",
+                        "wwww......",
+                        "<14w......",
+                        "<1.wwwwwww",
+                        "..........",
+                        "..........",
+                        "<.1wwwwddd",
+                        "<13w.1....",
+                        "wwww.1....",
+                    ],
+                    puzzles: ["g7", "g7", "g8", "g8"],
+                    doors: [[6, "g", -1, 0], [6, "g", -2, 0], [6, "g", -3, 0]],
+                    signs: [],
+                },
+                "-4:-4": {
+                    grid: [
+                        "..........",
+                        "..........",
+                        "wwwwwwwwww",
+                        "t<14wttttt",
+                        "t<1wwttttt",
+                        "..........",
+                        "..........",
+                        "t<.3wttttt",
+                        "t<..wttttt",
+                        "wwwwwwwwww",
+                    ],
+                    puzzles: ["g9", "g9", "g10", "g10"],
+                    doors: [],
+                    signs: [],
+                },
+                "-5:-4": {
+                    grid: [
+                        "..........",
+                        "..........",
+                        "....wwwwww",
+                        "....wttttt",
+                        "....wttttt",
+                        "....w.....",
+                        "....w.....",
+                        "....w..wtt",
+                        "....w..wtt",
+                        "wwwwwddwww",
+                    ],
+                    puzzles: [],
+                    doors: [[10, "g", -1, 0], [10, "g", 1, 0]],
+                    signs: [],
+                },
+                "-6:-4": {
+                    grid: [
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        ".......www",
+                    ],
+                    puzzles: [],
+                    doors: [[10, "g", -1, 0], [10, "g", 1, 0]],
+                    signs: [],
+                },
+                "-4:-1": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "<13w2>tttt",
+                        "...w2>tttt",
+                        "wb.w4>tttt",
+                        "w.........",
+                        "w.....b.b.",
+                        "w.........",
+                        "wb.w5>tttt",
+                        "...w1>tttt",
+                        "<51w5>tttt",
+                    ],
+                    puzzles: ["b3", "b1", "b1", "b1", "b2", "b2", "b4", "b2"],
+                    doors: [],
+                    signs: [],
+                },
+                "-5:-1": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "31>ttttttt",
+                        "..........",
+                        ".bwwwwwwww",
+                        "91>ttttttt",
+                        "55>ttttttt",
+                        "19>ttttttt",
+                        ".bwwwwwwww",
+                        "..........",
+                        ".5>ttttttt",
+                    ],
+                    puzzles: ["b3", "b5", "b5", "b5", "b4"],
+                    doors: [],
+                    signs: [],
+                },
+                "-6:-1": {
+                    grid: [
+                        ".......wdw",
+                        ".......w.w",
+                        ".......w.w",
+                        ".......w.w",
+                        ".......w.w",
+                        ".......w..",
+                        ".......www",
+                        ".........w",
+                        ".........w",
+                        ".........r",
+                    ],
+                    puzzles: [],
+                    doors: [[5, "b", -1, 0]],
+                    signs: [],
+                },
+                "-6:-3": {
+                    grid: [
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                        ".......w..",
+                    ],
+                    grass: [8, 0, 10, 10],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-5:-3": {
+                    grid: [
+                        "33.22..wtt",
+                        "vv.vv..wtt",
+                        "tt.tt..wtt",
+                        ".t.t...wtt",
+                        "tt.tt..wtt",
+                        "t...t..wii",
+                        "tt.tt..w^^",
+                        "^^.^^..w92",
+                        "33.22..w9.",
+                        ".3.2w..www",
+                    ],
+                    grid2: [
+                        "ii.ii.....",
+                        "ii.ii.....",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "ii.ii.....",
+                        "ii.ii.....",
+                        ".i.i......",
+                    ],
+                    grass: [0, 0, 10, 10],
+                    puzzles: ["p1", "p1", "p1", "p1", "p2", "p2", "p1", "p1", "p1", "p1"],
+                    doors: [],
+                    signs: [],
+                },
+                "-4:-3": {
+                    grid: [
+                        "ttwttttttt",
+                        "ttwttttttt",
+                        "ttwwwwwww.",
+                        "tt......b.",
+                        "ttwwwwwww.",
+                        "iiwtttt<16",
+                        "^^wtttt<..",
+                        "29wtttt<61",
+                        ".9w.wwwwww",
+                        "www.wtttw>",
+                    ],
+                    grass: [0, 0, 10, 10],
+                    puzzles: ["p3", "p2", "p2", "p3", "p3", "p6"],
+                    doors: [],
+                    signs: [],
+                },
+                "-6:-2": {
+                    grid: [
+                        ".......w.b",
+                        ".......w.b",
+                        ".......w.b",
+                        ".......w..",
+                        ".......w.w",
+                        ".......w.8",
+                        ".......w.8",
+                        ".......w.8",
+                        ".......w.8",
+                        ".......w.8",
+                    ],
+                    grass: [8, 0, 10, 10],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-5:-2": {
+                    grid: [
+                        "..........",
+                        ".wwwwwwwww",
+                        ".w88.88wtt",
+                        ".w88088wtt",
+                        "wwvvvvvwtt",
+                        "8>tttttwtt",
+                        "8>tttttwtt",
+                        "8>tttttw^^",
+                        "8>tttttw12",
+                        "8>tttttw..",
+                    ],
+                    grass: [0, 0, 10, 10],
+                    puzzles: ["p9", "p9", "p9", "p9", "p9", "p9", "p9", "p9", "p8", "p8", "p9", "p9"],
+                    doors: [],
+                    signs: [],
+                },
+                "-4:-2": {
+                    grid: [
+                        "....wtttw.",
+                        "www.wtttw.",
+                        "ttw.wtttw>",
+                        "ttw.wtttw.",
+                        "ttw.w^^^w.",
+                        "ttw.w222w>",
+                        "ttw.w222ww",
+                        "^^w.w.....",
+                        "34w.wwwww.",
+                        "..........",
+                    ],
+                    grass: [0, 0, 10, 10],
+                    puzzles: ["p6", "p7", "p7", "p7", "p6", "p8", "p8"],
+                    doors: [],
+                    signs: [],
+                },
+                "-2:-4": {
+                    grid: [
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "wwwwwwwwww",
+                        "d.........",
+                        "d.........",
+                        "wwwwwwwwww",
+                        "...w......",
+                        "...w......",
+                    ],
+                    puzzles: [],
+                    doors: [[10, "g", 0, -1], [10, "g", 0, 1]],
+                    signs: [],
+                },
+                "1:-1": {
+                    grid: [
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                        "w.........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "1:0": {
+                    grid: [
+                        "w.........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-1:0": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-2:0": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-3:0": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-4:0": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-5:0": {
+                    grid: [
+                        "wwwwwwwwww",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+                "-6:0": {
+                    grid: [
+                        ".........w",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                        "..........",
+                    ],
+                    puzzles: [],
+                    doors: [],
+                    signs: [],
+                },
+            };
+            var grid = [];
+
+
+
+            // var w = level[0].length;
+            // var h = level.length;
+            var s = width / 10;
+
+
+            var bad = function() {
+                fill(0, 0, 0);
+                textSize(s * 2 / 3);
+                textAlign(CENTER, CENTER);
+                    text("eyesight", s * 2.5, s * 8);
+                    textSize(s / 5);
+                    textAlign(LEFT, TOP);
+                    text("oh no it's another cursed\nrule discovery", s * 1.1, s * 8.4);
+                    textAlign(CENTER, CENTER);
+                    text("wasd or arrows to move\nspace or click to interact", s * 2.5, s * 9.5);
+                fill(0, 0, 0);
+                textSize(s * 2 / 3);
+                textAlign(CENTER, CENTER);
+                    text("ice height", s * 7.5, s * 8);
+                    textSize(s / 5);
+                    textAlign(LEFT, TOP);
+                    text("guys i finally figured out\n1 + i height", s * 6.1, s * 8.4);
+                    textAlign(CENTER, CENTER);
+                    text("don't forget to\nbackup everything", s * 7.5, s * 9.5);};
+
+            var undoEntities = [];
+            var player = null;
+
+            var puzProgress = [];
+            var puzSolved = [];
+            var puzEntities = [];
+
+            var doorEntities = [];
+
+            var blockEntities = [];
+
+            var createEntity = function(t, x, y, d, e) {
+                var self = {
+                    id: random(),
+                    t: t,
+                    x: x,
+                    y: y,
+                    drawX: x,
+                    drawY: y,
+                    drawArray: [],
+                    on: false,
+                    d: d,
+                    e: e,
+                    draw: function() {
+                        if (self.drawArray.length > 0) {
+                            self.drawX = lerp(self.drawX, self.drawArray[0][0], 0.5);
+                            self.drawY = lerp(self.drawY, self.drawArray[0][1], 0.5);
+                            while (self.drawArray.length > 0 && abs(self.drawX - self.drawArray[0][0]) < 0.25 && abs(self.drawY - self.drawArray[0][1]) < 0.25) {
+                                self.drawX = self.drawArray[0][0];
+                                self.drawY = self.drawArray[0][1];
+                                self.drawArray.shift();
+                            }
+                        }
+                        else {
+                            if (self.t === "d") {
+                                if (self.drawX !== self.x) {
+                                    self.drawX += (self.x - self.drawX) / abs(self.x - self.drawX) / 60;
+                                }
+                                if (self.drawY !== self.y) {
+                                    self.drawY += (self.y - self.drawY) / abs(self.y - self.drawY) / 60;
+                                }
+                            }
+                            else {
+                                self.drawX = lerp(self.drawX, self.x, 0.5);
+                                self.drawY = lerp(self.drawY, self.y, 0.5);
+                            }
+                        }
+                        var x = self.drawX;
+                        var y = self.drawY;
+                        if (self.t === "p") {
+                            // x += (noise(x / 10, y / 10, millis() / 500) - 0.5) * 10;
+                            // y += (noise(x / 10, y / 10, 10 + millis() / 500) - 0.5) * 10;
+                            fill(255, 0, 0);
+                            // fill(255, 0, 0, 5);
+                            rect(x * s, y * s, s, s);
+                            // fill(0, 0, 0, noise(x / 10, y / 10, millis() / 1000) * 255);
+                            // rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "w") {
+                            // fill(0, 0, 0, noise(x / 10, y / 10, millis() / 1000) * 255);
+                            fill(0, 0, 0);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "f") {
+                            fill(0, 0, 0);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "r") {
+                            fill(0, 0, 0);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "g") {
+                            fill(0, 255, 0, noise(x / 1, y / 1, 0.5) * 255);
+                            fill(0, noise(x, y, 0.5) * 100 + 150, 0);
+                            // fill(0, noise(x, y, millis() / 10000) * 100 + 150, 0);
+                            // fill(0, 0, 0, noise(x / 10, y / 10, millis() / 1000) * 255);
+                            rect(x * s, y * s, s, s);
+                            // if (random() < 0.01) {
+                            // pushMatrix();
+                            // translate(x * s - s * 10, y * s - s * 10);
+                            // rotate(random(360));
+                            // bad();
+                            // popMatrix();
+                            // translate(-x * s + s * 10, -y * s + s * 10);
+                            // }
+                        }
+                        else if (self.t === "b") {
+                            fill(255, 125, 0);
+                            rect(x * s, y * s, s, s / 5);
+                            rect(x * s, y * s + s * 4 / 5, s, s / 5);
+                            rect(x * s, y * s, s / 5, s);
+                            rect(x * s + s * 4 / 5, y * s, s / 5, s);
+                            // if (random() < 0.5) {
+                            //     fill(255, 175, 0);
+                            // }
+                            // else {
+                            //     fill(75, 50, 0);
+                            // }
+                            // rect(x * s + s / 5, y * s + s / 5, s * 3 / 5, s * 3 / 5);
+                        }
+                        else if (self.t === "d") {
+                            fill(0, 0, 0);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "i") {
+                            fill(255, 255, 255, 125);
+                            rect(x * s, y * s, s, s);
+                        }
+                        else if (self.t === "t") {
+                            if (self.on) {
+                            // if (random() < 0.5) {
+                                fill(255, 175, 0);
+                            }
+                            else {
+                                fill(75, 50, 0);
+                            }
+                            rect(x * s + s / 5, y * s + s / 5, s * 3 / 5, s * 3 / 5);
+                        }
+                        else if (self.t === "e") {
+                            if (puzSolved[self.e]) {
+                            // if (random() < 0.5) {
+                                fill(0, 255, 0);
+                                rect(x * s, y * s, s, s);
+                            }
+                            strokeWeight(s / 10);
+                            stroke(0, 0, 255);
+                            if (self.d === 0) {
+                                line(x * s + s * 3 / 4, y * s + s / 4, x * s + s / 4, y * s + s / 2);
+                                line(x * s + s * 3 / 4, y * s + s * 3 / 4, x * s + s / 4, y * s + s / 2);
+                            }
+                            else if (self.d === 1) {
+                                line(x * s + s / 4, y * s + s / 4, x * s + s * 3 / 4, y * s + s / 2);
+                                line(x * s + s / 4, y * s + s * 3 / 4, x * s + s * 3 / 4, y * s + s / 2);
+                            }
+                            else if (self.d === 2) {
+                                line(x * s + s / 4, y * s + s * 3 / 4, x * s + s / 2, y * s + s / 4);
+                                line(x * s + s * 3 / 4, y * s + s * 3 / 4, x * s + s / 2, y * s + s / 4);
+                            }
+                            else if (self.d === 3) {
+                                line(x * s + s / 4, y * s + s / 4, x * s + s / 2, y * s + s * 3 / 4);
+                                line(x * s + s * 3 / 4, y * s + s / 4, x * s + s / 2, y * s + s * 3 / 4);
+                            }
+                            noStroke();
+                            if (debugMode) {
+                                textSize(s * 3 / 4);
+                                textAlign(CENTER, CENTER);
+                                fill(255, 0, 255);
+                                text(self.e, x * s + s / 2, y * s + s / 2);
+                            }
+                        }
+                        else if (self.t === "n") {
+                            textSize(s * 3 / 4);
+                            textAlign(CENTER, CENTER);
+                            fill(0, 0, 255);
+                            // text(floor(random(0, 10)), x * s + s / 2, y * s + s / 2);
+                            text(self.d, x * s + s / 2, y * s + s / 2);
+                            // text("?", x * s + s / 2, y * s + s / 2);
+                        }
+                    },
+                    updateGrid: function() {
+                        if (!grid[self.y]) {
+                            grid[self.y] = [];
+                        }
+                        if (!grid[self.y][self.x]) {
+                            grid[self.y][self.x] = [];
+                        }
+                        grid[self.y][self.x][self.id] = self;
+                    },
+                    move: function(x, y) {
+                        var nx = self.x + x;
+                        var ny = self.y + y;
+                        // if (nx < 0 || nx >= w || ny < 0 || ny >= h) {
+                        //     return false;
+                        // }
+                        if (grid[ny] && grid[ny][nx]) {
+                            if (!debugMode) {
+                                for (var i in grid[ny][nx]) {
+                                    if (grid[ny][nx][i].t === "w" || grid[ny][nx][i].t === "d" || grid[ny][nx][i].t === "[" || grid[ny][nx][i].t === "i") {
+                                        return false;
+                                    }
+                                }
+                            }
+                            if (!debugMode && false) {
+                                for (var i in grid[ny][nx]) {
+                                    if (grid[ny][nx][i].t === "r") {
+                                        return false;
+                                    }
+                                }
+                            }
+                            for (var i in grid[ny][nx]) {
+                                if (grid[ny][nx][i].t === "b" && !grid[ny][nx][i].move(x, y)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        delete grid[self.y][self.x][self.id];
+                        self.x += x;
+                        self.y += y;
+                        self.drawArray.push([self.x, self.y]);
+                        self.updateGrid();
+                        return true;
+                    },
+                    update: function() {
+                        if (self.t === "d") {
+                            if (!self.on) {
+                                if (puzProgress[self.d[1]] >= self.d[0] || debugMode) {
+                                    self.on = true;
+                                    delete grid[self.y][self.x][self.id];
+                                    self.x += self.d[2];
+                                    self.y += self.d[3];
+                                    self.updateGrid();
+                                }
+                            }
+                            else {
+                                if (puzProgress[self.d[1]] < self.d[0]) {
+                                    self.on = false;
+                                    delete grid[self.y][self.x][self.id];
+                                    self.x -= self.d[2];
+                                    self.y -= self.d[3];
+                                    self.updateGrid();
+                                }
+                            }
+                        }
+                        else if (self.t === "e") {
+                            if (puzSolved[self.e]) {
+                                var areaArray = [];
+                                var on = false;
+                                search: for (var i = 1; i < 40; i++) {
+                                    var t = self.getTileDir(self.d, i);
+                                    if (t) {
+                                        var onTile = false;
+                                        for (var j in t) {
+                                            if (t[j].t === "w" || t[j].t === "d" || t[j].t === "b") {
+                                                break search;
+                                            }
+                                        }
+                                        for (var j in t) {
+                                            if (t[j].t === "t" && t[j].on) {
+                                                if (!on) {
+                                                    areaArray.push(self.getArea(t[j]));
+                                                    on = true;
+                                                }
+                                                onTile = true;
+                                            }
+                                        }
+                                        if (!onTile) {
+                                            on = false;
+                                        }
+                                    }
+                                    else {
+                                        on = false;
+                                    }
+                                }
+                                var areaArray2 = [];
+                                search: for (var i = 1; i < 40; i++) {
+                                    var t = self.getTileDir(self.flipDir(self.d), i);
+                                    var detected = false;
+                                    if (t) {
+                                        for (var j in t) {
+                                            if (t[j].t === "w" || t[j].t === "d" || t[j].t === "b") {
+                                                break search;
+                                            }
+                                        }
+                                        for (var j in t) {
+                                            if (t[j].t === "n") {
+                                                areaArray2.push(t[j].d);
+                                                detected = true;
+                                            }
+                                        }
+                                    }
+                                    if (!detected) {
+                                        areaArray2.push(false);
+                                    }
+                                }
+                                for (var i = 0; i < max(areaArray.length, areaArray2.length); i++) {
+                                    if (areaArray2[i] === false) {
+                                        continue;
+                                    }
+                                    if (areaArray2[i] === 0) {
+                                        if (i < areaArray.length) {
+                                            puzSolved[self.e] = false;
+                                            // println("failed to solve " + self.e);
+                                            break;
+                                        }
+                                        break;
+                                    }
+                                    if (areaArray[i] !== areaArray2[i]) {
+                                        puzSolved[self.e] = false;
+                                        // println("failed to solve " + self.e);
+                                        // println("expected " + areaArray2[i] + ", got " + areaArray[i]);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    getTileDir: function(dir, l) {
+                        var nx = self.x;
+                        var ny = self.y;
+                        if (dir === 0) {
+                            nx -= l;
+                        }
+                        else if (dir === 1) {
+                            nx += l;
+                        }
+                        else if (dir === 2) {
+                            ny -= l;
+                        }
+                        else if (dir === 3) {
+                            ny += l;
+                        }
+                        if (grid[ny] && grid[ny][nx]) {
+                            return grid[ny][nx];
+                        }
+                        return false;
+                    },
+                    flipDir: function(dir) {
+                        if (dir % 2 === 0) {
+                            return dir + 1;
+                        }
+                        return dir - 1;
+                    },
+                    getArea: function(t) {
+                        if (!t.on) {
+                            return 0;
+                        }
+                        var x = t.x;
+                        var y = t.y;
+                        var area = 1;
+                        var visited = [];
+                        var queue = [[x, y]];
+                        visited[y] = [];
+                        visited[y][x] = true;
+                        while (queue.length > 0) {
+                            var c = queue.shift();
+                            var cx = c[0] - 1;
+                            var cy = c[1];
+                            if (grid[cy] && grid[cy][cx] && (!visited[cy] || !visited[cy][cx])) {
+                                for (var i in grid[cy][cx]) {
+                                    if (grid[cy][cx][i].t === "t" && grid[cy][cx][i].on) {
+                                        queue.push([cx, cy]);
+                                        if (!visited[cy]) {
+                                            visited[cy] = [];
+                                        }
+                                        visited[cy][cx] = true;
+                                        area += 1;
+                                        break;
+                                    }
+                                }
+                            }
+                            cx = c[0] + 1;
+                            cy = c[1];
+                            if (grid[cy] && grid[cy][cx] && (!visited[cy] || !visited[cy][cx])) {
+                                for (var i in grid[cy][cx]) {
+                                    if (grid[cy][cx][i].t === "t" && grid[cy][cx][i].on) {
+                                        queue.push([cx, cy]);
+                                        if (!visited[cy]) {
+                                            visited[cy] = [];
+                                        }
+                                        visited[cy][cx] = true;
+                                        area += 1;
+                                        break;
+                                    }
+                                }
+                            }
+                            cx = c[0];
+                            cy = c[1] - 1;
+                            if (grid[cy] && grid[cy][cx] && (!visited[cy] || !visited[cy][cx])) {
+                                for (var i in grid[cy][cx]) {
+                                    if (grid[cy][cx][i].t === "t" && grid[cy][cx][i].on) {
+                                        queue.push([cx, cy]);
+                                        if (!visited[cy]) {
+                                            visited[cy] = [];
+                                        }
+                                        visited[cy][cx] = true;
+                                        area += 1;
+                                        break;
+                                    }
+                                }
+                            }
+                            cx = c[0];
+                            cy = c[1] + 1;
+                            if (grid[cy] && grid[cy][cx] && (!visited[cy] || !visited[cy][cx])) {
+                                for (var i in grid[cy][cx]) {
+                                    if (grid[cy][cx][i].t === "t" && grid[cy][cx][i].on) {
+                                        queue.push([cx, cy]);
+                                        if (!visited[cy]) {
+                                            visited[cy] = [];
+                                        }
+                                        visited[cy][cx] = true;
+                                        area += 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        return area;
+                    },
+                };
+                self.updateGrid();
+                if (self.t === "e") {
+                    if (!puzEntities[self.e]) {
+                        puzEntities[self.e] = [];
+                    }
+                    puzEntities[self.e].push(self);
+                }
+                if (self.t === "d") {
+                    doorEntities.push(self);
+                }
+                if (self.t === "n") {
+                    // self.d += floor(random() * 1000);
+                    // self.d += floor(random() * 2);
+                    // self.d = floor(random() * );
+                    // self.x += floor(random() * 3 - 1);
+                    // self.y += floor(random() * 3 - 1);
+                }
+                if (self.t === "b") {
+                    blockEntities[self.id] = self;
+                }
+                if (self.t === "e" || self.t === "n" || self.t === "t" || self.t === "g") {
+                    self.l = 0;
+                }
+                else {
+                    self.l = 1;
+                }
+                return self;
+            };
+
+            var addUndo = function() {
+                var e = {};
+                e[player.id] = {
+                    x: player.x,
+                    y: player.y,
+                };
+                for (var i in blockEntities) {
+                    e[blockEntities[i].id] = {
+                        x: blockEntities[i].x,
+                        y: blockEntities[i].y,
+                    };
+                }
+                undoEntities.push(e);
+            };
+
+            var loadLevel = function() {
+                for (var i in level) {
+                    var cx = parseInt(i.split(":")[0], 10) * 10;
+                    var cy = parseInt(i.split(":")[1], 10) * 10;
+                    var puzzleIndex = 0;
+                    // level[i].grass = [0, 0, 10, 10];
+                    if (level[i].grass) {
+                        for (var y = level[i].grass[1]; y < level[i].grass[3]; y++) {
+                            for (var x = level[i].grass[0]; x < level[i].grass[2]; x++) {
+                                createEntity("g", x + cx, y + cy);
+                            }
+                        }
+                    }
+                    for (var y = 0; y < 10; y++) {
+                        for (var x = 0; x < 10; x++) {
+                            switch (level[i].grid[y][x]) {
+                                case "t":
+                                    createEntity("t", x + cx, y + cy);
+                                    break;
+                                case "<":
+                                    createEntity("e", x + cx, y + cy, 0, level[i].puzzles[puzzleIndex]);
+                                    puzzleIndex += 1;
+                                    break;
+                                case ">":
+                                    createEntity("e", x + cx, y + cy, 1, level[i].puzzles[puzzleIndex]);
+                                    puzzleIndex += 1;
+                                    break;
+                                case "^":
+                                    createEntity("e", x + cx, y + cy, 2, level[i].puzzles[puzzleIndex]);
+                                    puzzleIndex += 1;
+                                    break;
+                                case "v":
+                                    createEntity("e", x + cx, y + cy, 3, level[i].puzzles[puzzleIndex]);
+                                    puzzleIndex += 1;
+                                    break;
+                            }
+                            if (parseInt(level[i].grid[y][x], 10) + "" === level[i].grid[y][x]) {
+                                createEntity("n", x + cx, y + cy, parseInt(level[i].grid[y][x], 10));
+                            }
+                        }
+                    }
+                    var doorIndex = 0;
+                    var signIndex = 0;
+                    for (var y = 0; y < 10; y++) {
+                        for (var x = 0; x < 10; x++) {
+                            switch (level[i].grid[y][x]) {
+                                case "p":
+                                    if (!debugMode) {
+                                        player = createEntity("p", x + cx, y + cy);
+                                    }
+                                    else {
+                                        player = createEntity("p", -40, -21);
+                                    }
+                                    break;
+                                case "w":
+                                        // if (level[i].doors[doorIndex]) {
+                                        //     createEntity("d", x + cx, y + cy, level[i].doors[doorIndex]);
+                                        // }
+                                        // else {
+                                        createEntity("w", x + cx, y + cy);
+                                            // createEntity("d", x + cx, y + cy, [1, "t", round(random(-3, 3)), round(random(-3, 3))]);
+                                        // }
+                                    break;
+                                case "d":
+                                    createEntity("d", x + cx, y + cy, level[i].doors[doorIndex]);
+                                    doorIndex += 1;
+                                    break;
+                                case "s":
+                                    createEntity("s", x + cx, y + cy, level[i].signs[signIndex]);
+                                    signIndex += 1;
+                                    break;
+                                case "b":
+                                    createEntity("b", x + cx, y + cy);
+                                    break;
+                                case "f":
+                                    createEntity("f", x + cx, y + cy);
+                                    break;
+                                case "[":
+                                    createEntity("[", x + cx, y + cy);
+                                    break;
+                                case "r":
+                                    createEntity("r", x + cx, y + cy);
+                                    break;
+                                case "i":
+                                    createEntity("i", x + cx, y + cy);
+                                    break;
+                            }
+                        }
+                    }
+                    if (level[i].grid2) {
+                        for (var y = 0; y < 10; y++) {
+                            for (var x = 0; x < 10; x++) {
+                                switch (level[i].grid2[y][x]) {
+                                    case "p":
+                                        // player = createEntity("p", x + cx, y + cy);
+                                        player = createEntity("p", -40, -21);
+                                        break;
+                                    case "w":
+                                        // if (level[i].doors[doorIndex]) {
+                                        //     createEntity("d", x + cx, y + cy, level[i].doors[doorIndex]);
+                                        // }
+                                        // else {
+                                        createEntity("w", x + cx, y + cy);
+                                        // }
+                                        break;
+                                    case "d":
+                                        createEntity("d", x + cx, y + cy, level[i].doors[doorIndex]);
+                                        doorIndex += 1;
+                                        break;
+                                    case "s":
+                                        createEntity("s", x + cx, y + cy, level[i].signs[signIndex]);
+                                        signIndex += 1;
+                                        break;
+                                    case "b":
+                                        createEntity("b", x + cx, y + cy);
+                                        break;
+                                    case "f":
+                                        createEntity("f", x + cx, y + cy);
+                                        break;
+                                    case "[":
+                                        createEntity("[", x + cx, y + cy);
+                                        break;
+                                    case "r":
+                                        createEntity("r", x + cx, y + cy);
+                                        break;
+                                    case "i":
+                                        createEntity("i", x + cx, y + cy);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            var time = millis();
+            var repeatTime = 40;
+
+            keyPressed = function() {
+                if (millis() - time < repeatTime) {
+                    return;
+                }
+                time = millis();
+                if (keyCode === 90) {
+                    if (undoEntities.length === 0) {
+                        return;
+                    }
+                    var e = undoEntities.pop();
+                    for (var i in e) {
+                        var ent = null;
+                        if (i === player.id + "") {
+                            ent = player;
+                        }
+                        else {
+                            ent = blockEntities[i];
+                        }
+                        delete grid[ent.y][ent.x][ent.id];
+                        ent.x = e[i].x;
+                        ent.y = e[i].y;
+                        ent.updateGrid();
+                    }
+                }
+                if (keyCode === 82) {
+                    // loadLevel();
+                }
+                if (keyCode === 37 || keyCode === 65) {
+                    addUndo();
+                    player.move(-1, 0);
+                }
+                if (keyCode === 39 || keyCode === 68) {
+                    addUndo();
+                    player.move(1, 0);
+                }
+                if (keyCode === 38 || keyCode === 87) {
+                    addUndo();
+                    player.move(0, -1);
+                }
+                if (keyCode === 40 || keyCode === 83) {
+                    addUndo();
+                    player.move(0, 1);
+                }
+                if (keyCode === 32) {
+                    for (var i in grid[player.y][player.x]) {
+                        if (grid[player.y][player.x][i].t === "t") {
+                            grid[player.y][player.x][i].on = !grid[player.y][player.x][i].on;
+                        }
+                    }
+                }
+                for (var i in puzEntities) {
+                    if (puzSolved[i]) {
+                        puzProgress[i.substring(0, 1)] -= 1;
+                    }
+                    puzSolved[i] = true;
+                    for (var j in puzEntities[i]) {
+                        puzEntities[i][j].update();
+                    }
+                    if (puzSolved[i]) {
+                        if (!puzProgress[i.substring(0, 1)]) {
+                            puzProgress[i.substring(0, 1)] = 0;
+                        }
+                        puzProgress[i.substring(0, 1)] += 1;
+                    }
+                }
+                for (var i in doorEntities) {
+                    doorEntities[i].update();
+                }
+            };
+            mousePressed = function() {
+                for (var i in grid[player.y][player.x]) {
+                    if (grid[player.y][player.x][i].t === "t") {
+                        grid[player.y][player.x][i].on = !grid[player.y][player.x][i].on;
+                    }
+                }
+                for (var i in puzEntities) {
+                    if (puzSolved[i]) {
+                        puzProgress[i.substring(0, 1)] -= 1;
+                    }
+                    puzSolved[i] = true;
+                    for (var j in puzEntities[i]) {
+                        puzEntities[i][j].update();
+                    }
+                    if (puzSolved[i]) {
+                        if (!puzProgress[i.substring(0, 1)]) {
+                            puzProgress[i.substring(0, 1)] = 0;
+                        }
+                        puzProgress[i.substring(0, 1)] += 1;
+                    }
+                }
+                for (var i in doorEntities) {
+                    doorEntities[i].update();
+                }
+            };
+
+            loadLevel();
+
+            var cx = 0;
+            var cy = 0;
+            var cs = s;
+
+            draw = function() {
+                background(255, 255, 255);
+                noStroke();
+                resetMatrix();
+                var tx = -(player.x + 0.5 - width / 2 / s) * s + (width / 2 - mouseX) / 5;
+                var ty = -(player.y + 0.5 - height / 2 / s) * s + (height / 2 - mouseY) / 5;
+                var ts = width / (15 + 10);
+                if (!debugMode) {
+                    ts = width / 15;
+                }
+                // tx += (noise(tx / 10, ty / 10, millis() / 1000) - 0.5) * 400;
+                // ty += (noise(tx / 10, ty / 10, 10 + millis() / 1000) - 0.5) * 400;
+                if (player.x >= 0 && player.x < 10 && player.y >= 0 && player.y < 10) {
+                    tx = 0;
+                    ty = 0;
+                    ts = width / 10;
+                }
+                cx = lerp(cx, tx, 0.1);
+                cy = lerp(cy, ty, 0.1);
+                cs = lerp(cs, ts, 0.1);
+                s = round(cs);
+                translate(round(cx), round(cy));
+                // scale(s,);
+                for (var y = floor(-cy / s); y <= ceil(-cy / s + height / s); y++) {
+                    if (!grid[y]) {
+                        continue;
+                    }
+                    for (var x = floor(-cx / s); x <= ceil(-cx / s + width / s); x++) {
+                        if (!grid[y][x]) {
+                            continue;
+                        }
+                        for (var i in grid[y][x]) {
+                            if (grid[y][x][i].l === 0) {
+                                grid[y][x][i].draw();
+                            }
+                        }
+                    }
+                }
+                for (var y = floor(-cy / s); y <= ceil(-cy / s + height / s); y++) {
+                    if (!grid[y]) {
+                        continue;
+                    }
+                    for (var x = floor(-cx / s); x <= ceil(-cx / s + width / s); x++) {
+                        if (!grid[y][x]) {
+                            continue;
+                        }
+                        for (var i in grid[y][x]) {
+                            if (grid[y][x][i].l === 1) {
+                                grid[y][x][i].draw();
+                            }
+                        }
+                    }
+                }
+                fill(0, 0, 0);
+                textSize(s * 2 / 3);
+                textAlign(CENTER, CENTER);
+                if (player.x === 5 && player.y === 8) {
+                    text("ice height", s * 2.5, s * 8);
+                    textSize(s / 5);
+                    textAlign(LEFT, TOP);
+                    text("guys i finally figured out\n1 + i height", s * 1.1, s * 8.4);
+                    textAlign(CENTER, CENTER);
+                    text("don't forget to\nbackup everything", s * 2.5, s * 9.5);
+                }
+                else {
+                    text("eyesight", s * 2.5, s * 8);
+                    textSize(s / 5);
+                    textAlign(LEFT, TOP);
+                    text("oh no it's another cursed\nrule discovery", s * 1.1, s * 8.4);
+                    textAlign(CENTER, CENTER);
+                    text("wasd or arrows to move\nspace or click to interact", s * 2.5, s * 9.5);
+                }
+                resetMatrix();
+                // for (var i = 0; i < 10; i++) {
+                //     translate(random(-50, 50), random(-50, 50));
+                //     rotate(random(360));
+                //     bad();
+                // }
+                stroke(0, 0, 0, 25);
+                strokeWeight(1);
+                for (var y = floor(-cy / s); y <= ceil(-cy / s + height / s); y++) {
+                    line(0, y * s + round(cy), width, y * s + round(cy));
+                }
+                for (var x = floor(-cx / s); x <= ceil(-cx / s + width / s); x++) {
+                    line(x * s + round(cx), 0, x * s + round(cx), height);
+                }
+                noStroke();
+            };
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,2444 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Block Pushing Game</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Block Pushing Game</div>
+        <br>
+        [WASD] or Arrow keys to move
+        <br>
+        [E] and [Q] to change levels
+        <br>
+        [Z] to undo, [R] to restart
+        <br>
+        [G] to hide player arrows, [H] to hide block arrows
+        <br>
+        [ to start speedrun, [S] to skip level in speedrun
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+            
+            // press E to go to the next level
+            // press Q to go back a level
+
+            // press G to hide player arrows
+            // press H to hide block arrows
+
+            // press [ to start spedrun
+            // press S to skip level in speedrun
+
+            // linked characters
+            // linked blocks
+            // facing direction for blocks (better than i speed)
+            // buttons that activate gates - added
+            // buttons that activate moving blocks (too spaghetti to solve?) - too bad i added it
+            // hexagonal/diagonal movement?? (use qweadzxc)
+            // 
+
+            // size(600, 600, 1);
+
+            var goals = [];
+            var blocks = [];
+            var players = [];
+            var speedChanges = [];
+            var walls = [];
+            var moved = [];
+            var buttons = [];
+            var gates = [];
+
+            var undoBlocks = [];
+            var undoPlayers = [];
+            var undoSpeedChanges = [];
+            var undoKeypresses = [];
+
+            var w = 10;
+            // w = 16;
+
+            var level = level || 0;
+            // level = 20;
+            // level = 5;
+            // println("hi");
+
+            var best = [7, 14, 50, 54, 56, 44, 109, 60, 69, 24, 10, 193, 45, 51, 65, 109, 24, 155, 124, 45, 21, 64, 24, 26, 34, 18, 13, 338, 37, 42, 22, 34, 46, 0, 0, 66];
+
+            var ltext = "";
+            var transition = 0;
+
+            var speedrun = speedrun || false;
+            var levelEnd = levelEnd || [0];
+            var started = started || false;
+            var lastFrame = lastFrame || 0;
+
+            var keyPresses = keyPresses || 0;
+            var trackKeypresses = true;
+
+            var hideBlockArrows = hideBlockArrows || false;
+            var hidePlayerArrows = hidePlayerArrows || false;
+
+            var playerSpeed = false;
+            var blockSpeed = false;
+
+            var grid = [];
+            var activatedButtons = [];
+
+            var buffer = 0.001;
+
+            var createObject = function(x, y, spdX, spdY, width, height, t, c, d, e) {
+                if (t !== null) {
+                    var a = false;
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === t) {
+                                x += j;
+                                y += i;
+                                grid[i] = grid[i].substring(0, j) + " " + grid[i].substring(j + 1);
+                                a = true;
+                                break;
+                            }
+                        }
+                        if (a) {
+                            break;
+                        }
+                    }
+                }
+                if (c === undefined) {
+                    c = null;
+                }
+                if (e === undefined) {
+                    e = false;
+                }
+                if (typeof spdX === "number") {
+                    spdX = [spdX, 0];
+                }
+                if (typeof spdY === "number") {
+                    spdY = [spdY, 0];
+                }
+                return {
+                    id: random(),
+                    x: x,
+                    y: y,
+                    drawX: x,
+                    drawY: y,
+                    spdX: spdX,
+                    spdY: spdY,
+                    width: width,
+                    height: height,
+                    c: c,
+                    d: d,
+                    e: e,
+                    isColliding: function(object) {
+                        var self = this;
+                        if (self.x + buffer < object.x + object.width && self.x + self.width > object.x + buffer && self.y + buffer < object.y + object.height && self.y + self.height > object.y + buffer) {
+                            return true;
+                        }
+                        return false;
+                    },
+                    move: function(x, y, parent) {
+                        var self = this;
+                        self.x += self.spdX[0] * x + self.spdY[1] * y;
+                        self.y += self.spdY[0] * y + self.spdX[1] * x;
+                        moved.push([self, self.spdX[0] * x + self.spdY[1] * y, self.spdY[0] * y + self.spdX[1] * x]);
+                        if (self.x < -buffer || self.x + self.width > w + buffer || self.y < -buffer || self.y + self.height > w + buffer) {
+                            return false;
+                        }
+                        for (var i in walls) {
+                            if (self.isColliding(walls[i])) {
+                                return false;
+                            }
+                        }
+                        for (var i in gates) {
+                            if ((!activatedButtons[gates[i].c] ^ gates[i].e) && self.isColliding(gates[i])) {
+                                return false;
+                            }
+                        }
+                        for (var i in blocks) {
+                            if (blocks[i].id === self.id) {
+                                continue;
+                            }
+                            if (blocks[i].id === parent) {
+                                continue;
+                            }
+                            while (self.isColliding(blocks[i])) {
+                                if (!blocks[i].move(x, y, self.id)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        for (var i in players) {
+                            if (players[i].id === self.id) {
+                                continue;
+                            }
+                            if (players[i].id === parent) {
+                                continue;
+                            }
+                            while (self.isColliding(players[i])) {
+                                if (!players[i].move(x, y, self.id)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    },
+                    update: function() {
+                        var self = this;
+                        for (var i in speedChanges) {
+                            if (self.isColliding(speedChanges[i])) {
+                                var x = cos(speedChanges[i].spdX[0]);
+                                var y = sin(speedChanges[i].spdX[0]);
+                                var dotX = (self.spdX[0] * x + self.spdX[1] * y);
+                                self.spdX[0] += (speedChanges[i].spdY[0] - 1) * dotX * x + (speedChanges[i].spdY[1]) * dotX * y;
+                                self.spdX[1] += (speedChanges[i].spdY[0] - 1) * dotX * y + (speedChanges[i].spdY[1]) * dotX * x;
+                                var dotY = (self.spdY[0] * y + self.spdY[1] * x);
+                                self.spdY[0] += (speedChanges[i].spdY[0] - 1) * dotY * y + (speedChanges[i].spdY[1]) * dotY * x;
+                                self.spdY[1] += (speedChanges[i].spdY[0] - 1) * dotY * x + (speedChanges[i].spdY[1]) * dotY * y;
+                                self.spdX[0] = round(self.spdX[0] * 1000000) / 1000000;
+                                self.spdX[1] = round(self.spdX[1] * 1000000) / 1000000;
+                                self.spdY[0] = round(self.spdY[0] * 1000000) / 1000000;
+                                self.spdY[1] = round(self.spdY[1] * 1000000) / 1000000;
+                                speedChanges[i].toRemove = true;
+                            }
+                        }
+                    },
+                };
+            };
+
+
+            var updateButtons = function() {
+                activatedButtons = [];
+                for (var i in buttons) {
+                    var self = buttons[i];
+                    var area = 0;
+                    for (var j in blocks) {
+                        if (self.isColliding(blocks[j])) {
+                            area += (min(self.x + self.width, blocks[j].x + blocks[j].width) - max(self.x, blocks[j].x)) * (min(self.y + self.height, blocks[j].y + blocks[j].height) - max(self.y, blocks[j].y));
+                        }
+                    }
+                    for (var j in players) {
+                        if (self.isColliding(players[j])) {
+                            area += (min(self.x + self.width, players[j].x + players[j].width) - max(self.x, players[j].x)) * (min(self.y + self.height, players[j].y + players[j].height) - max(self.y, players[j].y));
+                        }
+                    }
+                    if (self.width * self.height - area <= 0.001) {
+                        activatedButtons[self.c] = true;
+                    }
+                }
+            };
+
+            var levelNames = [];
+            var levels = [
+                function() {
+                    ltext = "get the green block to the yellow goal";
+                    playerSpeed = false;
+                    blockSpeed = false;
+                    
+                    grid = [
+                        "          ",
+                        " p   b    ",
+                        "          ",
+                        "     g    ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "cyan tiles change your speed\n(g to hide player arrows)";
+                    playerSpeed = true;
+                    blockSpeed = false;
+                    
+                    grid = [
+                        "     w    ",
+                        "  g  w  p ",
+                        "     w    ",
+                        "     w    ",
+                        "     w    ",
+                        "     w    ",
+                        "  b  w    ",
+                        "     w  c ",
+                        "     w    ",
+                        "     w    ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "cyan tile maze!";
+                    playerSpeed = true;
+                    blockSpeed = false;
+                    
+                    grid = [
+                        "     w  cg",
+                        " p cw   w ",
+                        "     w  w ",
+                        "wwwwww  wb",
+                        "     w    ",
+                        "c    w    ",
+                        "ww b w    ",
+                        "gw   w    ",
+                        "     w c  ",
+                        "     w    ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "blocks can also have different speeds\n(h to hide block arrows)";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        " w        ",
+                        "gw        ",
+                        " w      b ",
+                        " w     wbw",
+                        " w        ",
+                        "gw   p    ",
+                        " w  b  www",
+                        "gw     w w",
+                        " w    bwgw",
+                        " w     www",
+                    ];
+                    // push the 3-3 block up
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 4, 5, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 3, 3, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "blocks can also use cyan tiles";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "wwwwww   p",
+                        "ww   c    ",
+                        "wc        ",
+                        "w  www    ",
+                        "w    ww   ",
+                        "www   w   ",
+                        "     ww   ",
+                        "  b  ww   ",
+                        " g   wgb c",
+                        "     ww   ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 2, 2, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "chain";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "         w",
+                        " p       w",
+                        "  wwwwwwww",
+                        "  wgwwggwg",
+                        "  wwww www",
+                        "         w",
+                        "    b b  w",
+                        "   b b    ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    // blocks.push(createObject(0, 2 / 3, 2, 4 / 18, 1, 1, "1"));
+                    // blocks.push(createObject(1 / 2, 1 / 3, 1, 2 / 5, 1, 1, "2"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 3, 3, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    // speedChanges.push(createObject(0, 0, 1 / 2, 1, 1, 1, "3"));
+                    // speedChanges.push(createObject(0, 0, 2, 1 / 3, 1, 1, "4"));
+                    // speedChanges.push(createObject(0, 0, 1, 1 / 4, 1, 1, "5"));
+                    // speedChanges.push(createObject(0, 0, 2, 1 / 3, 1, 1, "6"));
+                    // speedChanges.push(createObject(0, 0, 1, 6, 1, 1, "7"));
+                    // speedChanges.push(createObject(0, 0, 1 / 2, 3 / 5, 1, 1, "8"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "in between";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "       w  ",
+                        "       w  ",
+                        "       2c ",
+                        "111      w",
+                        " c     1 w",
+                        "  1       ",
+                        "1 w b     ",
+                        "w w    g w",
+                        "w        w",
+                        "w        w",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1 / 2, 1 / 2, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(1 / 2, 1 / 2, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 1 / 2, 90, 1 / 2, 1, 1, "c"));
+                    walls.push(createObject(0, 0, 1, 1, 1, 3 / 2, "2"));
+                    walls.push(createObject(0, 1 / 2, 1, 1, 1, 1, "1"));
+                    walls.push(createObject(0, 1 / 2, 1, 1, 1, 1, "1"));
+                    walls.push(createObject(0, 1 / 2, 1, 1, 1, 1, "1"));
+                    walls.push(createObject(0, 1 / 2, 1, 1, 1, 1, "1"));
+                    walls.push(createObject(0, 1 / 2, 1, 1, 1, 1, "1"));
+                    walls.push(createObject(0, 1 / 2, 1, 1, 1, 1, "1"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "split";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        " 1      2 ",
+                        "          ",
+                        "          ",
+                        "     g    ",
+                        "          ",
+                        "  3    4  ",
+                        "          ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1 / 2, 1 / 2, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1 / 2, 1 / 2, "1"));
+                    blocks.push(createObject(1 / 2, 0, 1, 1, 1 / 2, 1 / 2, "2"));
+                    blocks.push(createObject(1 / 2, 1 / 2, 1, 1, 1 / 2, 1 / 2, "3"));
+                    blocks.push(createObject(0, 1 / 2, 1, 1, 1 / 2, 1 / 2, "4"));
+                    goals.push(createObject(1 / 2, 1 / 2, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "offset";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "gb   wwwww",
+                        "   wcw bc ",
+                        "wwwwb     ",
+                        "p    w    ",
+                        "wwwwww    ",
+                        "  c c c   ",
+                        "          ",
+                        "  b       ",
+                        "          ",
+                        "p b      c",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(-1, 0, 1, 1, 1, 2, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, -0.5, 90, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 20, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "sokoban";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "  wwww    ",
+                        "  w gw    ",
+                        "  wb www  ",
+                        "  wg p w  ",
+                        "  w b  w  ",
+                        "  w  www  ",
+                        "  wwww    ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "nabokos";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "  wwww    ",
+                        "  w gw    ",
+                        "  wb www  ",
+                        "  wg p w  ",
+                        "  w b  w  ",
+                        "  w  www  ",
+                        "  wwww    ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, -1, -1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "swap";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "w   w  w w",
+                        "  w w    g",
+                        " pw wb w w",
+                        "  w w    w",
+                        " bw www ww",
+                        "  w      c",
+                        "  w  w w c",
+                        "  w    w c",
+                        "  w ww w c",
+                        "w   wg    ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, -2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, -1, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, -1, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, -1, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, -1, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "double";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "   wwww   ",
+                        "   wg w   ",
+                        "   wwww   ",
+                        "          ",
+                        "          ",
+                        "    c     ",
+                        "          ",
+                        " b      b ",
+                        "    p     ",
+                    ];
+                    
+                    players.push(createObject(1 / 2, 0, 1 / 2, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1 / 2, 1, 1 / 2, 1, "b"));
+                    blocks.push(createObject(1 / 2, 0, 1 / 2, 1, 1 / 2, 1, "b"));
+                    goals.push(createObject(1 / 2, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(1 / 2, 0, 90, 2, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 1e100, 1, 1, "c")); // new level idea?? overflow
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "triple";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "wgww ww w ",
+                        "www       ",
+                        "     ww ww",
+                        "wcww ww ww",
+                        "wcwwcwwcww",
+                        "wcww wwcww",
+                        "wcwwcww ww",
+                        "          ",
+                        " p  b  b  ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 3, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "infinity";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "   wc   bg",
+                        " b wc wwww",
+                        "   wc w   ",
+                        "   wc w   ",
+                        "   wc wwww",
+                        " b c cb   ",
+                        " ww cwwww ",
+                        " w  cw    ",
+                        " wb cw    ",
+                        "p         ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1 / 2, 1, "b"));
+                    blocks.push(createObject(1 / 2, 0, 3, 1, 2, 1, "b"));
+                    blocks.push(createObject(0, 0, -1, 1, 1 / 2, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(1 / 2, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(1 / 2, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(1 / 2, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, Infinity, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "turn";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "   w bgw  ",
+                        "   w www  ",
+                        "   w w w  ",
+                        "    bw wb ",
+                        "     w    ",
+                        "   wwwbw p",
+                        "          ",
+                        "  b  b    ",
+                        "          ",
+                        "b         ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, -1], 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, [1, -1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, -1], [0, -1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 3, [1, -1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, 2], [0, 2], 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    // speedChanges.push(createObject(0, 0, 0, [0, -1], 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 90, [0, -1], 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "knight";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        " g        ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "    b     ",
+                        "         p",
+                        "     w    ",
+                    ];
+                    
+                    players.push(createObject(0, 0, [2, 1], [2, 1], 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 3, 3, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    // speedChanges.push(createObject(0, 0, 0, 3, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "cycle";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "g w       ",
+                        "w     w w ",
+                        "w         ",
+                        "w     b   ",
+                        "nnw   w   ",
+                        "nn    w ww",
+                        "nn      bw",
+                        " nw   wbbw",
+                        "w      www",
+                        "         p",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    // blocks.push(createObject(0, 0, 1, 0, 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, -1, -1, 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, [0, -1], [0, 1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, -2], [0, 2], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, 1], [0, -1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, -1], [0, 1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "n"));
+                    blocks.push(createObject(0, 0, [0, -1], [0, 1], 1, 1, "n"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "n"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "n"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "n"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "n"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "n"));
+                    // blocks.push(createObject(0, 0, [0, -1], 1, 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, 1, [1, -1], 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, [0, -1], [0, -1], 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, -1, -1, 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, 3, [1, -1], 1, 1, "b"));
+                    // blocks.push(createObject(0, 0, [0, 2], [0, 2], 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    // speedChanges.push(createObject(0, 0, 0, [0, -1], 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 90, [0, -1], 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                // function() {
+                //     ltext = "sorry, the up and down keys\nhave been disabled";
+                //     playerSpeed = true;
+                //     blockSpeed = true;
+                    
+                //     grid = [
+                //         "c       bg",
+                //         "          ",
+                //         "          ",
+                //         "b         ",
+                //         "          ",
+                //         "   b   b  ",
+                //         "          ",
+                //         "    bbbbb ",
+                //         "bp   bbbb ",
+                //         "          ",
+                //     ];
+                    
+                //     players.push(createObject(0, 0, [1, -0.5], [9, 0], 1, 1, "p"));
+                //     blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0, -8, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0, [0, 2], 0, 3 / 2, 1, "b"));
+                //     blocks.push(createObject(0, 0, -4, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, 1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, 1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, 1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, 1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, [0, 1], 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0, [0, 5], 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, -1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, -1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, -1, 0, 1, 1, "b"));
+                //     blocks.push(createObject(0, 0.5, -1, 0, 1, 1, "b"));
+                //     goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                //     speedChanges.push(createObject(0, 0, 90, 0, 1, 1, "c"));
+                    
+                //     for (var i = 0; i < grid.length; i++) {
+                //         for (var j = 0; j < grid[i].length; j++) {
+                //             if (grid[i][j] === "w") {
+                //                 walls.push(createObject(j, i, 1, 1, 1, 1));
+                //             }
+                //         }
+                //     }
+                // },
+                function() {
+                    ltext = "jump";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "      wwwg",
+                        " w  w   wb",
+                        "ww  w   ww",
+                        "         w",
+                        "         g",
+                        "   wbb   ",
+                        "          ",
+                        "  wb w    ",
+                        "  ww w    ",
+                        "   w     p",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, 1], [0, -1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, -1], [0, 1], 1, 1, "b"));
+                    blocks.push(createObject(0, 0, [0, -2], [0, 2], 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "moves can be split up into two vectors\nthe vectors are multiplied by the cyan tile";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "b         ",
+                        "    g     ",
+                        "    c     ",
+                        "   ccc    ",
+                        "  c   c   ",
+                        " c  c  c  ",
+                        "wwwwwwwwww",
+                        "          ",
+                        " c  c    p",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, [0, -1], [0, -1], 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 45, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 135, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 45, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "buttons can be activated by\nhaving a block or player on it\nbuttons will open gates";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "       ! g",
+                        "       !  ",
+                        "       !!!",
+                        "          ",
+                        "          ",
+                        "       b  ",
+                        "          ",
+                        "  b p  1  ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "1", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "trapped";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "       @ g",
+                        " p     @b ",
+                        "       @@@",
+                        "  b         ",
+                        "          ",
+                        "ww!!!     ",
+                        "    !   2 ",
+                        " b1 !     ",
+                        "w w w     ",
+                        "  2 w     ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 3, 3, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b"));
+                    blocks.push(createObject(1, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "1", "1"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "2", "2"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "2", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "@", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "@", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "@", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "@", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "@", "2"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "some blocks will move on their own\nwhen the same colored button is activated";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "wbw     wg",
+                        "w w     ww",
+                        "wbw       ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "   b 1    ",
+                        "          ",
+                        "   p      ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b", "1", 3));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "1", "1"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "alternator";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "          ",
+                        "        w!",
+                        "        w!",
+                        "   b 1  w!",
+                        "        w!",
+                        "   b 2  w!",
+                        "        w!",
+                        "   p    wb",
+                        "        wg",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b", "1", 3));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b", "2", 2));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "1", "1"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "2", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1", null, true));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1", null, true));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1", null, true));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "alternator 2.0";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "          ",
+                        "        w!",
+                        "        w!",
+                        "   b    w!",
+                        "     1  w!",
+                        "   b 2  w!",
+                        "        w!",
+                        "   p    wb",
+                        "        wg",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, -1, -1, 1, 1, "b", "1", 3));
+                    blocks.push(createObject(0, 0, 2, 2, 1, 1, "b", "2", 2));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "1", "1"));
+                    buttons.push(createObject(0, 0, 1, 1, 1, 1, "2", "2"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1", null, true));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1", null, true));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1"));
+                    gates.push(createObject(0, 0, 1, 1, 1, 1, "!", "1", null, true));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "you win!\ncontinue for more cursed levels (not done)";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "g         ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "     b    ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        " p        ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "welcome to some cursed levels\nfeel free to skip some";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "cccccccccc",
+                        "pcccccccbg",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "c") {
+                                speedChanges.push(createObject(0, 0, i * j * 3, j / i, 1, 1, "c"));
+                            }
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "circle";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "    p     ",
+                        "          ",
+                        "          ",
+                        "       g  ",
+                        "          ",
+                        "          ",
+                    ];
+                    
+                    players.push(createObject(0.5, 0.5, 0.05, 0.05, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, [0, -2], [0, -2], 1, 1, "b"));
+                    goals.push(createObject(0.5, 0.5, 1, 1, 0.5, 0.5, "g"));
+                    // speedChanges.push(createObject(0, 0, 90, 1 / 3, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 1 / 3, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 45, 3, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 135, 3, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 45, 3, 1, 1, "c"));
+                    // speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    for (var i = 0; i < 360; i += 360 / 40) {
+                        speedChanges.push(createObject(4.5 - 4.5 * cos(i), 4.5 - 4.5 * sin(i), i, 1.2, 1, 1));
+                    }
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "precision";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "gw  c w  c",
+                        "bw    wbbb",
+                        " w c      ",
+                        "www       ",
+                        "  cw  c   ",
+                        "    w     ",
+                        "    cw    ",
+                        "      wc  ",
+                        "  c    wc ",
+                        "p  c  c w ",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 30, 1e100, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 4, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 45, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 0, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 30, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 0, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 60, 3, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 135, 3, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "offset 2";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "gb   w  c ",
+                        "   w w b  ",
+                        "wwwwbw    ",
+                        "p   c     ",
+                        "wwwwww    ",
+                        "  c c     ",
+                        "          ",
+                        "  b       ",
+                        "          ",
+                        "p b      c",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(-1, 0, 1, 1, 1, 2, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "offset 3";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "gb   w  c ",
+                        "   wcw b  ",
+                        "wwwwb     ",
+                        "p    w    ",
+                        "wwww w    ",
+                        "  c c     ",
+                        "          ",
+                        "  b       ",
+                        "          ",
+                        "p b      c",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(-1, 0, 1, 1, 1, 2, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, -0.5, 90, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "offset 4";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "gb   w  c ",
+                        "   wcw b  ",
+                        "wwwwb     ",
+                        "p    w    ",
+                        "wwwwww    ",
+                        "  c c c   ",
+                        "          ",
+                        "  b       ",
+                        "          ",
+                        "p b      c",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(-1, 0, 1, 1, 1, 2, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, -0.5, 90, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 10, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "offset 5";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "gb   w  c ",
+                        "   wcw b  ",
+                        "wwwwb     ",
+                        "p    w    ",
+                        "wwwwww    ",
+                        "  c c c   ",
+                        "          ",
+                        "  b       ",
+                        "          ",
+                        "p b      c",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    blocks.push(createObject(-1, 0, 1, 1, 1, 2, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    blocks.push(createObject(0, 0, 2, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    speedChanges.push(createObject(0, 0, 0, 1 / 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, -0.5, 90, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 0, 2, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 20, 1, 1, "c"));
+                    speedChanges.push(createObject(0, 0, 90, 1 / 2, 1, 1, "c"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "Math.random()";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                    ];
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            var spdX = [random(-2, 2), random(-2, 2)];
+                            var spdY = [random(-2, 2), random(-2, 2)];
+                            var width = random(0.5, 2);
+                            var height = random(0.5, 2);
+                            spdX = round(random(-2, 2));
+                            spdY = round(random(-2, 2));
+                            width = round(random(1, 2));
+                            height = round(random(1, 2));
+                            spdX = 1;
+                            spdY = 1;
+                            width = 1;
+                            height = 1;
+                            if (random() < 0.02) {
+                                players.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                            else if (random() < 0.1) {
+                                blocks.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                            else if (random() < 0.04) {
+                                goals.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                            else if (random() < 0.04) {
+                                buttons.push(createObject(j, i, spdX, spdY, width, height, null, color(round(random(3)) * 100, round(random(3)) * 100, round(random(3)) * 100), null, random() > 0.5));
+                            }
+                            else if (random() < 0.04) {
+                                gates.push(createObject(j, i, spdX, spdY, width, height, null, color(round(random(3)) * 100, round(random(3)) * 100, round(random(3)) * 100), null, random() > 0.5));
+                            }
+                            else if (random() < 0.04) {
+                                blocks.push(createObject(j, i, spdX, spdY, width, height, null, color(round(random(3)) * 100, round(random(3)) * 100, round(random(3)) * 100), floor(random(4)), random() > 0.5));
+                            }
+                            else if (random() < 0.1) {
+                                speedChanges.push(createObject(j, i, round(random()) * 90, round(random(-2, 2)), width, height));
+                            }
+                            else if (random() < 0.1) {
+                                walls.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = random(0, 1000000000);
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                        "          ",
+                    ];
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            var spdX = [random(-2, 2), random(-2, 2)];
+                            var spdY = [random(-2, 2), random(-2, 2)];
+                            var width = random(0, 2);
+                            var height = random(0, 2);
+                            if (random() < 0.05) {
+                                players.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                            else if (random() < 0.1) {
+                                blocks.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                            else if (random() < 0.04) {
+                                goals.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                            else if (random() < 0.1) {
+                                speedChanges.push(createObject(j, i, random(0, 360), random(-2, 2), width, height));
+                            }
+                            else if (random() < 0.1) {
+                                walls.push(createObject(j, i, spdX, spdY, width, height));
+                            }
+                        }
+                    }
+                },
+                function() {
+                    ltext = "wow you beat the cursed levels\n(or you skipped here)\ntheres nothing left";
+                    playerSpeed = true;
+                    blockSpeed = true;
+                    
+                    grid = [
+                        "g         ",
+                        " wwww www ",
+                        "        w ",
+                        " ww w w   ",
+                        "    w   w ",
+                        "w w w w w ",
+                        "          ",
+                        " w  www w ",
+                        " p w b    ",
+                        "w     w  w",
+                    ];
+                    
+                    players.push(createObject(0, 0, 1, 1, 1, 1, "p"));
+                    blocks.push(createObject(0, 0, 1, 1, 1, 1, "b"));
+                    goals.push(createObject(0, 0, 1, 1, 1, 1, "g"));
+                    
+                    for (var i = 0; i < grid.length; i++) {
+                        for (var j = 0; j < grid[i].length; j++) {
+                            if (grid[i][j] === "w") {
+                                walls.push(createObject(j, i, 1, 1, 1, 1));
+                            }
+                        }
+                    }
+                },
+            ];
+            if (level === levels.length) {
+                level = 0;
+            }
+            for (var i in levels) {
+                levels[i]();
+                levelNames.push(ltext);
+            }
+            levelNames[0] = "tutorial 1";
+            levelNames[1] = "tutorial 2";
+            levelNames[2] = "tutorial 3";
+            levelNames[3] = "tutorial 4";
+            levelNames[4] = "tutorial 5";
+            levelNames[19] = "tutorial 6";
+            levelNames[20] = "tutorial 7";
+            levelNames[22] = "tutorial 8";
+            levelNames[25] = "you win!";
+            levelNames[26] = "welcome";
+            var loadLevel = function() {
+                players = [];
+                blocks = [];
+                speedChanges = [];
+                goals = [];
+                walls = [];
+                gates = [];
+                buttons = [];
+                undoPlayers = [];
+                undoBlocks = [];
+                undoSpeedChanges = [];
+                keyPresses = 0;
+                levels[level]();
+                activatedButtons = [];
+                updateButtons();
+            };
+            loadLevel();
+
+            var addUndo = function() {
+                undoBlocks.push([]);
+                for (var i in blocks) {
+                    var a = {};
+                    for (var j in blocks[i]) {
+                        if (typeof blocks[i][j] !== "object") {
+                            a[j] = blocks[i][j];
+                            continue;
+                        }
+                        a[j] = Object.assign({}, blocks[i][j]);
+                    }
+                    undoBlocks[undoBlocks.length - 1].push(a);
+                }
+                undoPlayers.push([]);
+                for (var i in players) {
+                    var a = {};
+                    for (var j in players[i]) {
+                        if (typeof players[i][j] !== "object") {
+                            a[j] = players[i][j];
+                            continue;
+                        }
+                        a[j] = Object.assign({}, players[i][j]);
+                    }
+                    undoPlayers[undoPlayers.length - 1].push(a);
+                }
+                undoSpeedChanges.push([]);
+                for (var i in speedChanges) {
+                    var a = {};
+                    for (var j in speedChanges[i]) {
+                        if (typeof speedChanges[i][j] !== "object") {
+                            a[j] = speedChanges[i][j];
+                            continue;
+                        }
+                        a[j] = Object.assign({}, speedChanges[i][j]);
+                    }
+                    undoSpeedChanges[undoSpeedChanges.length - 1].push(a);
+                }
+                undoKeypresses.push(0);
+                while (undoBlocks.length > 1000) {
+                    undoBlocks.shift();
+                }
+                while (undoPlayers.length > 1000) {
+                    undoPlayers.shift();
+                }
+                while (undoSpeedChanges.length > 1000) {
+                    undoSpeedChanges.shift();
+                }
+                while (undoKeypresses.length > 1000) {
+                    undoKeypresses.shift();
+                }
+            };
+
+            var nextMove = 0;
+            var keys = [];
+            var move = function() {
+                var valid = false;
+                var time = 200;
+                // if (random() < 0.1) {
+                //     buffer = 1;
+                // }
+                // else {
+                //     buffer = 0.001;
+                // }
+                var moveBlocks = function() {
+                    for (var i in blocks) {
+                        if (blocks[i].c === null) {
+                            continue;
+                        }
+                        if (activatedButtons[blocks[i].c] && blocks[i].d === 0) {
+                            if (!blocks[i].move(-1, 0)) {
+                                for (var j in moved) {
+                                    moved[j][0].x -= moved[j][1];
+                                    moved[j][0].y -= moved[j][2];
+                                }
+                            }
+                            else {
+                                valid = true;
+                            }
+                            moved = [];
+                        }
+                        if (activatedButtons[blocks[i].c] && blocks[i].d === 1) {
+                            if (!blocks[i].move(1, 0)) {
+                                for (var j in moved) {
+                                    moved[j][0].x -= moved[j][1];
+                                    moved[j][0].y -= moved[j][2];
+                                }
+                            }
+                            else {
+                                valid = true;
+                            }
+                            moved = [];
+                        }
+                        if (activatedButtons[blocks[i].c] && blocks[i].d === 2) {
+                            if (!blocks[i].move(0, -1)) {
+                                for (var j in moved) {
+                                    moved[j][0].x -= moved[j][1];
+                                    moved[j][0].y -= moved[j][2];
+                                }
+                            }
+                            else {
+                                valid = true;
+                            }
+                            moved = [];
+                        }
+                        if (activatedButtons[blocks[i].c] && blocks[i].d === 3) {
+                            if (!blocks[i].move(0, 1)) {
+                                for (var j in moved) {
+                                    moved[j][0].x -= moved[j][1];
+                                    moved[j][0].y -= moved[j][2];
+                                }
+                            }
+                            else {
+                                valid = true;
+                            }
+                            moved = [];
+                        }
+                    }
+                };
+                if (keyCode === 37) {
+                    addUndo();
+                    for (var i in players) {
+                        if (!players[i].move(-1, 0)) {
+                            for (var j in moved) {
+                                moved[j][0].x -= moved[j][1];
+                                moved[j][0].y -= moved[j][2];
+                            }
+                        }
+                        else {
+                            valid = true;
+                        }
+                        moved = [];
+                    }
+                    moveBlocks();
+                    nextMove = millis() + time;
+                    if (!valid) {
+                        undoBlocks.pop();
+                        undoPlayers.pop();
+                        undoSpeedChanges.pop();
+                        undoKeypresses.pop();
+                    }
+                }
+                else if (keyCode === 39) {
+                    addUndo();
+                    for (var i in players) {
+                        if (!players[i].move(1, 0)) {
+                            for (var j in moved) {
+                                moved[j][0].x -= moved[j][1];
+                                moved[j][0].y -= moved[j][2];
+                            }
+                        }
+                        else {
+                            valid = true;
+                        }
+                        moved = [];
+                    }
+                    moveBlocks();
+                    nextMove = millis() + time;
+                    if (!valid) {
+                        undoBlocks.pop();
+                        undoPlayers.pop();
+                        undoSpeedChanges.pop();
+                        undoKeypresses.pop();
+                    }
+                }
+                else if (keyCode === 38) {
+                    addUndo();
+                    for (var i in players) {
+                        if (!players[i].move(0, -1)) {
+                            for (var j in moved) {
+                                moved[j][0].x -= moved[j][1];
+                                moved[j][0].y -= moved[j][2];
+                            }
+                        }
+                        else {
+                            valid = true;
+                        }
+                        moved = [];
+                    }
+                    moveBlocks();
+                    nextMove = millis() + time;
+                    if (!valid) {
+                        undoBlocks.pop();
+                        undoPlayers.pop();
+                        undoSpeedChanges.pop();
+                        undoKeypresses.pop();
+                    }
+                }
+                else if (keyCode === 40) {
+                    addUndo();
+                    for (var i in players) {
+                        if (!players[i].move(0, 1)) {
+                            for (var j in moved) {
+                                moved[j][0].x -= moved[j][1];
+                                moved[j][0].y -= moved[j][2];
+                            }
+                        }
+                        else {
+                            valid = true;
+                        }
+                        moved = [];
+                    }
+                    moveBlocks();
+                    nextMove = millis() + time;
+                    if (!valid) {
+                        undoBlocks.pop();
+                        undoPlayers.pop();
+                        undoSpeedChanges.pop();
+                        undoKeypresses.pop();
+                    }
+                }
+                else if (keys[32]) {
+                    addUndo();
+                    moveBlocks();
+                    nextMove = millis() + time;
+                    if (!valid) {
+                        undoBlocks.pop();
+                        undoPlayers.pop();
+                        undoSpeedChanges.pop();
+                        undoKeypresses.pop();
+                    }
+                }
+                if (valid) {
+                    keyPresses += 1;
+                    undoKeypresses[undoKeypresses.length - 1] += 1;
+                    started = true;
+                }
+                for (var i in players) {
+                    players[i].update();
+                }
+                for (var i in blocks) {
+                    blocks[i].update();
+                }
+                // for (var i in speedChanges) {
+                for (var i = 0; i < speedChanges.length; i++) {
+                    if (speedChanges[i].toRemove) {
+                        speedChanges.splice(i, 1);
+                        i -= 1;
+                    }
+                }
+                var win = true;
+                for (var i in goals) {
+                    var self = goals[i];
+                    var area = 0;
+                    for (var j in blocks) {
+                        if (self.isColliding(blocks[j])) {
+                            area += (min(self.x + self.width, blocks[j].x + blocks[j].width) - max(self.x, blocks[j].x)) * (min(self.y + self.height, blocks[j].y + blocks[j].height) - max(self.y, blocks[j].y));
+                        }
+                    }
+                    if (self.width * self.height - area > 0.001) {
+                        win = false;
+                    }
+                }
+                updateButtons();
+                if (win) {
+                    transition = 120;
+                }
+            };
+            keyPressed = function() {
+                keys[keyCode] = true;
+                if (transition) {
+                    return;
+                }
+                move();
+                if (keyCode === 82) {
+                    loadLevel();
+                }
+                if (!speedrun) {
+                    if (keyCode === 81) {
+                        level = max(level - 1, 0);
+                        loadLevel();
+                    }
+                    if (keyCode === 69) {
+                        level = min(level + 1, levels.length - 1);
+                        loadLevel();
+                    }
+                }
+                if (keyCode === 71) {
+                    hidePlayerArrows = !hidePlayerArrows;
+                }
+                if (keyCode === 72) {
+                    hideBlockArrows = !hideBlockArrows;
+                }
+                if (keyCode === 90) {
+                    if (undoBlocks.length === 0) {
+                        return;
+                    }
+                    var oldBlocks = undoBlocks.pop();
+                    var oldPlayers = undoPlayers.pop();
+                    for (var i in blocks) {
+                        blocks[i].x = oldBlocks[i].x;
+                        blocks[i].y = oldBlocks[i].y;
+                        blocks[i].spdX = oldBlocks[i].spdX;
+                        blocks[i].spdY = oldBlocks[i].spdY;
+                        if (isNaN(blocks[i].drawX)) {
+                            blocks[i].drawX = blocks[i].x;
+                        }
+                        if (isNaN(blocks[i].drawY)) {
+                            blocks[i].drawY = blocks[i].y;
+                        }
+                    }
+                    for (var i in players) {
+                        players[i].x = oldPlayers[i].x;
+                        players[i].y = oldPlayers[i].y;
+                        players[i].spdX = oldPlayers[i].spdX;
+                        players[i].spdY = oldPlayers[i].spdY;
+                        if (isNaN(players[i].drawX)) {
+                            players[i].drawX = players[i].x;
+                        }
+                        if (isNaN(players[i].drawY)) {
+                            players[i].drawY = players[i].y;
+                        }
+                    }
+                    speedChanges = undoSpeedChanges.pop();
+                    keyPresses -= undoKeypresses.pop();
+                    updateButtons();
+                }
+                if (keyCode === 83) {
+                    if (speedrun && level !== levels.length - 1) {
+                        started = false;
+                        levelEnd[level] = 0;
+                        level += 1;
+                        levelEnd[level] = 0;
+                        loadLevel();
+                    }
+                }
+                if (keyCode === 219) {
+                    if (speedrun) {
+                        speedrun = false;
+                    }
+                    else {
+                        speedrun = true;
+                        started = false;
+                        levelEnd = [];
+                        levelEnd[level] = 0;
+                        loadLevel();
+                    }
+                }
+            };
+            keyReleased = function() {
+                keys[keyCode] = false;
+            };
+
+            var s = width / w;
+            var ts = width / 400 * 12;
+            textSize(ts);
+
+            var fillColor = function(c) {
+                switch (c) {
+                    case "1":
+                        fill(255, 125, 125);
+                        break;
+                    case "2":
+                        fill(125, 125, 255);
+                        break;
+                    default:
+                        fill(c);
+                        break;
+                }
+            };
+
+            draw = function() {
+                if (transition > 0) {
+                    transition -= 1;
+                    if (transition === 0) {
+                        // frameRate(60);
+                        level += 1;
+                        levelEnd[level] = 0;
+                        loadLevel();
+                        started = false;
+                    }
+                    // if (transition === 1) {
+                    //     frameRate(0.5);
+                    // }
+                    // else {
+                        // return;
+                    // }
+                }
+                background(255, 255, 255);
+                noStroke();
+                // if (nextMove < millis()) {
+                //     move();
+                //     nextMove = millis() + 75;
+                // }
+                for (var i in walls) {
+                    var self = walls[i];
+                    fill(0, 0, 0);
+                    rect(self.x * s, self.y * s, self.width * s, self.height * s);
+                }
+                for (var i in goals) {
+                    var self = goals[i];
+                    fill(255, 255, 0);
+                    rect(self.x * s, self.y * s, self.width * s, self.height * s);
+                    fill(0, 0, 0);
+                    textAlign(CENTER, CENTER);
+                    text("goal", self.x * s + s / 2, self.y * s + s / 2);
+                }
+                for (var i in buttons) {
+                    var self = buttons[i];
+                    fillColor(self.c);
+                    rect(self.x * s, self.y * s, self.width * s, self.height * s);
+                    fill(255, 255, 255, 125);
+                    rect(self.x * s + self.width * s / 4, self.y * s + self.height * s / 4, self.width * s / 2, self.height * s / 2);
+                    fill(0, 0, 0);
+                    textAlign(CENTER, CENTER);
+                    text("button", self.x * s + s / 2, self.y * s + s / 2);
+                }
+                for (var i in gates) {
+                    var self = gates[i];
+                    fillColor(self.c);
+                    rect(self.x * s, self.y * s, self.width * s, self.height * s);
+                    if (activatedButtons[self.c] ^ self.e) {
+                        fill(255, 255, 255, 200);
+                        rect(self.x * s + self.width * s / 8, self.y * s + self.height * s / 8, self.width * s * 3 / 4, self.height * s * 3 / 4);
+                    }
+                    fill(0, 0, 0);
+                    textAlign(CENTER, CENTER);
+                    text("gate", self.x * s + s / 2, self.y * s + s / 2);
+                }
+                for (var i in blocks) {
+                    var self = blocks[i];
+                    self.drawX = lerp(self.drawX, self.x, 0.5);
+                    self.drawY = lerp(self.drawY, self.y, 0.5);
+                    var x = self.drawX;
+                    var y = self.drawY;
+                    if (self.c === null) {
+                        fill(0, 255, 0);
+                        rect(x * s, y * s, self.width * s, self.height * s);
+                    }
+                    else {
+                        fillColor(self.c);
+                        rect(x * s, y * s, self.width * s, self.height * s);
+                        if (!activatedButtons[self.c]) {
+                            fill(255, 255, 255, 125);
+                            rect(x * s, y * s, self.width * s, self.height * s);
+                        }
+                        fill(0, 0, 0);
+                        if (self.d === 0) {
+                            triangle(x * s + s / 8, y * s + self.height * s / 2 - s / 8, x * s, y * s + self.height * s / 2, x * s + s / 8, y * s + self.height * s / 2 + s / 8);
+                        }
+                        if (self.d === 1) {
+                            triangle(x * s + self.width * s - s / 8, y * s + self.height * s / 2 - s / 8, x * s + self.width * s, y * s + self.height * s / 2, x * s + self.width * s - s / 8, y * s + self.height * s / 2 + s / 8);
+                        }
+                        if (self.d === 2) {
+                            triangle(x * s + self.width * s / 2 - s / 8, y * s + s / 8, x * s + self.width * s / 2, y * s, x * s + self.width * s / 2 + s / 8, y * s + s / 8);
+                        }
+                        if (self.d === 3) {
+                            triangle(x * s + self.width * s / 2 - s / 8, y * s + self.height * s - s / 8, x * s + self.width * s / 2, y * s + self.height * s, x * s + self.width * s / 2 + s / 8, y * s + self.height * s - s / 8);
+                        }
+                    }
+                    if (!blockSpeed) {
+                        continue;
+                    }
+                    fill(0, 0, 0);
+                    textAlign(CENTER, CENTER);
+                    var xText = "X: ";
+                    if (abs(self.spdX[1]) < buffer) {
+                        xText += self.spdX[0];
+                    }
+                    else if (abs(self.spdX[0]) < buffer) {
+                        xText += self.spdX[1] + "i";
+                    }
+                    else {
+                        if (self.spdX[1] < 0) {
+                            xText += self.spdX[0] + " - " + abs(self.spdX[1]) + "i";
+                        }
+                        else {
+                            xText += self.spdX[0] + " + " + self.spdX[1] + "i";
+                        }
+                    }
+                    var yText = "Y: ";
+                    if (abs(self.spdY[1]) < buffer) {
+                        yText += self.spdY[0];
+                    }
+                    else if (abs(self.spdY[0]) < buffer) {
+                        yText += self.spdY[1] + "i";
+                    }
+                    else {
+                        if (self.spdY[1] < 0) {
+                            yText += self.spdY[0] + " - " + abs(self.spdY[1]) + "i";
+                        }
+                        else {
+                            yText += self.spdY[0] + " + " + self.spdY[1] + "i";
+                        }
+                    }
+                    text(xText + "\n" + yText, x * s + s / 2, y * s + s / 2);
+                }
+                for (var i in speedChanges) {
+                    var self = speedChanges[i];
+                    fill(0, 255, 255);
+                    rect(self.x * s, self.y * s, self.width * s, self.height * s);
+                    fill(0, 0, 255);
+                    translate(self.x * s + self.width * s / 2, self.y * s + self.height * s / 2);
+                    rotate(self.spdX[0]);
+                    stroke(0, 0, 255);
+                    strokeWeight(ts / 4);
+                    line(s / 3, 0, s / 6, s / 6);
+                    line(s / 3, 0, s / 6, -s / 6);
+                    line(s / 3, 0, -s / 3, 0);
+                    line(-s / 3, 0, -s / 6, s / 6);
+                    line(-s / 3, 0, -s / 6, -s / 6);
+                    strokeWeight(ts / 12);
+                    noStroke();
+                    // beginShape();
+                    // vertex(s / 6, -s / 8);
+                    // vertex(s / 6, -s / 6);
+                    // vertex(s / 3, 0);
+                    // vertex(s / 6, s / 6);
+                    // vertex(s / 6, s / 8);
+                    // vertex(s / 6 + s / 8, 0);
+                    // vertex(0, -s / 4);
+                    // vertex(0, -s / 3);
+                    // vertex(s / 3, 0);
+                    // vertex(0, s / 3);
+                    // vertex(0, s / 4);
+                    // vertex(s / 4, 0);
+                    // endShape();
+                    // beginShape();
+                    // vertex(-s / 3, -s / 4);
+                    // vertex(-s / 3, -s / 3);
+                    // vertex(0, 0);
+                    // vertex(-s / 3, s / 3);
+                    // vertex(-s / 3, s / 4);
+                    // vertex(-s / 3 + s / 4, 0);
+                    // endShape();
+                    rotate(-self.spdX[0]);
+                    translate(-(self.x * s + self.width * s / 2), -(self.y * s + self.height * s / 2));
+                    fill(0, 0, 0);
+                    textAlign(CENTER, CENTER);
+                    // text(self.spdY, self.x * s + self.width * s / 2, self.y * s + self.height * s / 2);
+                    // text(self.spdY[0] + "", self.x * s + self.width * s / 2, self.y * s + 8);
+                    var yText = "";
+                    var text0 = "";
+                    var found0 = false;
+                    if (self.spdY[0] === floor(self.spdY[0])) {
+                        text0 = self.spdY[0];
+                        found0 = true;
+                    }
+                    for (var i = -10; i < 10; i++) {
+                        if (abs(i) <= 1) {
+                            continue;
+                        }
+                        for (var j = 1; j < 10; j++) {
+                            if (self.spdY[0] === j / i) {
+                                text0 = j + " / " + i;
+                                found0 = true;
+                                break;
+                            }
+                        }
+                        if (found0) {
+                            break;
+                        }
+                    }
+                    if (!found0) {
+                        text0 = self.spdY[0];
+                    }
+                    var text1 = "";
+                    var found1 = false;
+                    for (var i = -10; i < 10; i++) {
+                        if (abs(i) <= 1) {
+                            continue;
+                        }
+                        for (var j = 1; j < i; j++) {
+                            if (self.spdY[1] === j / i) {
+                                text1 = j + " / " + i;
+                                found1 = true;
+                                break;
+                            }
+                        }
+                        if (found1) {
+                            break;
+                        }
+                    }
+                    if (!found1) {
+                        text1 = self.spdY[1];
+                    }
+                    if (abs(self.spdY[1]) < buffer) {
+                        yText += text0;
+                    }
+                    else if (abs(self.spdY[0]) < buffer) {
+                        yText += text1 + "i";
+                    }
+                    else {
+                        if (self.spdY[1] < 0) {
+                            yText += text0 + " - " + text1.substring(1) + "i";
+                        }
+                        else {
+                            yText += text0 + " + " + text1 + "i";
+                        }
+                    }
+                    text(yText, self.x * s + s / 2, self.y * s + 6);
+                    // text("X: " + self.spdX + "x\nY: " + self.spdY + "x", self.x * s + self.width * s / 2, self.y * s + self.height * s / 2);
+                }
+                for (var i in blocks) {
+                    var self = blocks[i];
+                    var x = self.drawX;
+                    var y = self.drawY;
+                    if (blockSpeed && (!hideBlockArrows || (x * s < mouseX && x * s + self.width * s > mouseX && y * s < mouseY && y * s + self.height * s > mouseY))) {
+                        stroke(0, 125, 255);
+                        strokeWeight(ts / 12);
+                        noFill();
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x + self.spdX[0]) * s + self.width * s / 2, (y + self.spdX[1]) * s + self.height * s / 2);
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x - self.spdX[0]) * s + self.width * s / 2, (y - self.spdX[1]) * s + self.height * s / 2);
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x + self.spdY[1]) * s + self.width * s / 2, (y + self.spdY[0]) * s + self.height * s / 2);
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x - self.spdY[1]) * s + self.width * s / 2, (y - self.spdY[0]) * s + self.height * s / 2);
+                        fill(0, 125, 255, 125);
+                        rect((x + self.spdX[0]) * s + self.width * s / 2 - s / 4, (y + self.spdX[1]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        rect((x - self.spdX[0]) * s + self.width * s / 2 - s / 4, (y - self.spdX[1]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        rect((x + self.spdY[1]) * s + self.width * s / 2 - s / 4, (y + self.spdY[0]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        rect((x - self.spdY[1]) * s + self.width * s / 2 - s / 4, (y - self.spdY[0]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        noStroke();
+                        fill(255, 225, 0);
+                        fill(0, 0, 0);
+                        triangle((x + self.spdX[0]) * s + self.width * s / 2, (y + self.spdX[1]) * s + self.height * s / 2 - s / 8, (x + self.spdX[0]) * s + self.width * s / 2 + s / 8, (y + self.spdX[1]) * s + self.height * s / 2, (x + self.spdX[0]) * s + self.width * s / 2, (y + self.spdX[1]) * s + self.height * s / 2 + s / 8);
+                        triangle((x - self.spdX[0]) * s + self.width * s / 2, (y - self.spdX[1]) * s + self.height * s / 2 - s / 8, (x - self.spdX[0]) * s + self.width * s / 2 - s / 8, (y - self.spdX[1]) * s + self.height * s / 2, (x - self.spdX[0]) * s + self.width * s / 2, (y - self.spdX[1]) * s + self.height * s / 2 + s / 8);
+                        triangle((x + self.spdY[1]) * s + self.width * s / 2 - s / 8, (y + self.spdY[0]) * s + self.height * s / 2, (x + self.spdY[1]) * s + self.width * s / 2, (y + self.spdY[0]) * s + self.height * s / 2 + s / 8, (x + self.spdY[1]) * s + self.width * s / 2 + s / 8, (y + self.spdY[0]) * s + self.height * s / 2);
+                        triangle((x - self.spdY[1]) * s + self.width * s / 2 - s / 8, (y - self.spdY[0]) * s + self.height * s / 2, (x - self.spdY[1]) * s + self.width * s / 2, (y - self.spdY[0]) * s + self.height * s / 2 - s / 8, (x - self.spdY[1]) * s + self.width * s / 2 + s / 8, (y - self.spdY[0]) * s + self.height * s / 2);
+                    }
+                }
+                for (var i in players) {
+                    var self = players[i];
+                    self.drawX = lerp(self.drawX, self.x, 0.5);
+                    self.drawY = lerp(self.drawY, self.y, 0.5);
+                    var x = self.drawX;
+                    var y = self.drawY;
+                    if (playerSpeed && (!hidePlayerArrows || (x * s < mouseX && x * s + self.width * s > mouseX && y * s < mouseY && y * s + self.height * s > mouseY))) {
+                        stroke(255, 125, 0);
+                        strokeWeight(ts / 12);
+                        noFill();
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x + self.spdX[0]) * s + self.width * s / 2, (y + self.spdX[1]) * s + self.height * s / 2);
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x - self.spdX[0]) * s + self.width * s / 2, (y - self.spdX[1]) * s + self.height * s / 2);
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x + self.spdY[1]) * s + self.width * s / 2, (y + self.spdY[0]) * s + self.height * s / 2);
+                        line(x * s + self.width * s / 2, y * s + self.height * s / 2, (x - self.spdY[1]) * s + self.width * s / 2, (y - self.spdY[0]) * s + self.height * s / 2);
+                        fill(255, 125, 0, 125);
+                        rect((x + self.spdX[0]) * s + self.width * s / 2 - s / 4, (y + self.spdX[1]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        rect((x - self.spdX[0]) * s + self.width * s / 2 - s / 4, (y - self.spdX[1]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        rect((x + self.spdY[1]) * s + self.width * s / 2 - s / 4, (y + self.spdY[0]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        rect((x - self.spdY[1]) * s + self.width * s / 2 - s / 4, (y - self.spdY[0]) * s + self.height * s / 2 - s / 4, s / 2, s / 2);
+                        noStroke();
+                        fill(255, 225, 0);
+                        fill(0, 0, 0);
+                        triangle((x + self.spdX[0]) * s + self.width * s / 2, (y + self.spdX[1]) * s + self.height * s / 2 - s / 8, (x + self.spdX[0]) * s + self.width * s / 2 + s / 8, (y + self.spdX[1]) * s + self.height * s / 2, (x + self.spdX[0]) * s + self.width * s / 2, (y + self.spdX[1]) * s + self.height * s / 2 + s / 8);
+                        triangle((x - self.spdX[0]) * s + self.width * s / 2, (y - self.spdX[1]) * s + self.height * s / 2 - s / 8, (x - self.spdX[0]) * s + self.width * s / 2 - s / 8, (y - self.spdX[1]) * s + self.height * s / 2, (x - self.spdX[0]) * s + self.width * s / 2, (y - self.spdX[1]) * s + self.height * s / 2 + s / 8);
+                        triangle((x + self.spdY[1]) * s + self.width * s / 2 - s / 8, (y + self.spdY[0]) * s + self.height * s / 2, (x + self.spdY[1]) * s + self.width * s / 2, (y + self.spdY[0]) * s + self.height * s / 2 + s / 8, (x + self.spdY[1]) * s + self.width * s / 2 + s / 8, (y + self.spdY[0]) * s + self.height * s / 2);
+                        triangle((x - self.spdY[1]) * s + self.width * s / 2 - s / 8, (y - self.spdY[0]) * s + self.height * s / 2, (x - self.spdY[1]) * s + self.width * s / 2, (y - self.spdY[0]) * s + self.height * s / 2 - s / 8, (x - self.spdY[1]) * s + self.width * s / 2 + s / 8, (y - self.spdY[0]) * s + self.height * s / 2);
+                    }
+                    fill(255, 0, 0);
+                    rect(x * s, y * s, self.width * s, self.height * s);
+                    if (!playerSpeed) {
+                        continue;
+                    }
+                    fill(0, 0, 0);
+                    textAlign(CENTER, CENTER);
+                    var xText = "X: ";
+                    if (abs(self.spdX[1]) < buffer) {
+                        xText += self.spdX[0];
+                    }
+                    else if (abs(self.spdX[0]) < buffer) {
+                        xText += self.spdX[1] + "i";
+                    }
+                    else {
+                        if (self.spdX[1] < 0) {
+                            xText += self.spdX[0] + " - " + abs(self.spdX[1]) + "i";
+                        }
+                        else {
+                            xText += self.spdX[0] + " + " + self.spdX[1] + "i";
+                        }
+                    }
+                    var yText = "Y: ";
+                    if (abs(self.spdY[1]) < buffer) {
+                        yText += self.spdY[0];
+                    }
+                    else if (abs(self.spdY[0]) < buffer) {
+                        yText += self.spdY[1] + "i";
+                    }
+                    else {
+                        if (self.spdY[1] < 0) {
+                            yText += self.spdY[0] + " - " + abs(self.spdY[1]) + "i";
+                        }
+                        else {
+                            yText += self.spdY[0] + " + " + self.spdY[1] + "i";
+                        }
+                    }
+                    text(xText + "\n" + yText, x * s + s / 2, y * s + s / 2);
+                }
+                stroke(0, 0, 0, 25);
+                for (var i = 1; i < w; i++) {
+                    line(0, i * s, width, i * s);
+                    line(i * s, 0, i * s, height);
+                }
+                fill(255, 0, 255);
+                textAlign(CENTER, TOP);
+                textSize(20 / 12 * ts);
+                text(ltext, width / 2, 5);
+                if (trackKeypresses) {
+                    textAlign(LEFT, BOTTOM);
+                    text("best: " + best[level] + "\n" + keyPresses, 8, height - 5);
+                }
+                if (speedrun) {
+                    textAlign(RIGHT, BOTTOM);
+                    textSize(ts);
+                    var totalTime = 0;
+                    var speedrunText = "";
+                    for (var i in levelEnd) {
+                        if (parseInt(i, 10) !== level) {
+                            if (levelEnd[i] === 0) {
+                                speedrunText += levelNames[i] + ": skipped\n";
+                                continue;
+                            }
+                        }
+                        totalTime += levelEnd[i];
+                        speedrunText += levelNames[i] + ": " + totalTime / 1000 + "\n";
+                    }
+                    speedrunText = speedrunText.substring(0, speedrunText.length - 1);
+                    text(speedrunText, width - 5, height - 5);
+                    if (started && transition === 0) {
+                        levelEnd[level] += millis() - lastFrame;
+                    }
+                }
+                lastFrame = millis();
+                textSize(ts);
+                if (transition > 0) {
+                    textAlign(CENTER, CENTER);
+                    textSize(40 / 12 * ts);
+                    if (best[level] < keyPresses) {
+                        text(keyPresses + " moves\nbest: " + best[level] + " (+" + (keyPresses - best[level]) + ")", width / 2, height / 2);
+                    }
+                    else if (best[level] === keyPresses) {
+                        text(keyPresses + " moves\nperfect!", width / 2, height / 2);
+                    }
+                    else {
+                        text(keyPresses + " moves\nhow?" + " (-" + (best[level] - keyPresses) + ")", width / 2, height / 2);
+                    }
+                    textSize(ts);
+                }
+            };
+        };
+    </script>
+</body>
+
+</html>

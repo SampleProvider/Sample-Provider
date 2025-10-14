@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Cursed Tetris Chaos</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Cursed Tetris Chaos</div>
+        <br>
+        Arrow keys to move
+        <br>
+        Space to drop
+        <br>
+        Credit: SPsquared
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+
+            var cursed = {
+                restartKeybind: false, // use R to restart
+                horizontalClearing: !false, // clear lines horizontally
+                verticalClearing: false, // clear lines vertically
+                fogRange: -1, // visibility around current shape (-1 = off)
+                heavenMode: false, // clears lines for you
+                hellMode: false, // pain
+                sliceOffMode: false, // cleared lines shorten the grid
+                invertMode: false, // weird, not random-able
+                scale: 1, // scale everything lol, not random-able
+                badRotations: false, // rotating becomes bad
+                badTranslations: false, // moving becomes bad, not random-able
+                fixedCurrShape: false, // camera follows shape
+                noRotating: false, // NO ROTATING!!!
+                stickyMode: false, // ruins your drops
+                squareMode: false, // ■
+                cloudMode: !false, // this is canon to the cursed tetris world
+                sinkTranslate: false, // your blocks are too heavy!
+                sinkRotate: false, // your blocks are unbalanced!
+                horizontalCylinderMode: false, // cylindrical 2D space
+                verticalCylinderMode: false, // cylindrical 2D space 2
+                noDropping: false, // NO DROPPING!!!
+                reverseScoreMode: false, // lol score go down
+                previousPieceMode: false, // next piece is now useless
+                greekMode: false, // βμh grεεκ mθδε
+                lockedMode: false, // shoots short, powerful laser bursts
+                oneDirectionMode: false, // no trademark issues here
+                moveAllMode: false, // EVERYTHING MOVES
+                iceMode: false, // actually pain and suffering
+                backwardsRotations: false, // piece rotates the wrong way
+                hueSaturationBalueMode: false, // Did you mean HSV? Oh, HSB?
+                realInvertMode: false, // actually inverts everything
+                wroMode: false, // GREEN PILLAR DETECTED, TURNING LEFT!
+                noDownMovementMode: false, // slow down, no need to rush!
+                forcedDropMode: false, // no leeway to move after touchdown
+                lagMode: false, // ow my eyes
+                badPiecesMode: false, // pieces are annoying
+                horriblePiecesMode: false, // can end your run in 2 pieces
+                noClearingMode: false, // no more clearing!
+                noAllyClipMode: false, // no collisions with same color
+                nukeMode: false, // occasionally drop a pixel simulator nuke
+                soundMode: false, // adds sounds (volume warning!)
+                mouseMode: false, // mouse controls
+                invertMoveMode: false, // piece moves the wrong way
+                diffuseModeMode: false, // RPS called, it wants its joke back
+                additiveMode: false, // uhh... going over 6 resets to empty
+                pisonFipMode: false, // pison fip
+                randomModes: true, // cursed tetris chaos mode
+            };
+            var displayRandom = !false;
+            var autoResetOnInaccuracy = false;
+            var randomModesOptions = [
+                "restartKeybind",
+                // "horizontalClearing",
+                "verticalClearing",
+                "heavenMode",
+                "hellMode",
+                // "sliceOffMode",
+                "badRotations",
+                // "badTranslations",
+                "fixedCurrShape",
+                "noRotating",
+                "stickyMode",
+                "squareMode",
+                // "cloudMode",
+                "sinkTranslate",
+                "sinkRotate",
+                "horizontalCylinderMode",
+                // "verticalCylinderMode",
+                "noDropping",
+                // "reverseScoreMode",
+                "previousPieceMode",
+                "greekMode",
+                "lockedMode",
+                "oneDirectionMode",
+                // "moveAllMode",
+                "iceMode",
+                "backwardsRotations",
+                "hueSaturationBalueMode",
+                "realInvertMode",
+                "wroMode",
+                "noDownMovementMode",
+                "forcedDropMode",
+                "lagMode",
+                "badPiecesMode",
+                "horriblePiecesMode",
+                "noClearingMode",
+                "noAllyClipMode",
+                "nukeMode",
+                "soundMode",
+                "soundMode",
+                "mouseMode",
+                "invertMoveMode",
+                "diffuseModeMode",
+                "additiveMode",
+                "pisonFipMode"
+            ];
+            var randomModesFrequency = 0.3;
+            var randomModesTimeRange = [2, 10];
+            var randomModesDifficultyScale = 0.001;
+            var nukeStrength = 4;
+            var allModesOof = false;
+
+            // SCOREBOARD:
+            // random modes (default): 1115110 (IIIVIIO) idk - sp
+            // random modes (default): 4910 - sp
+            // random modes (default): 4270 - spsp
+            // random modes (no sticky+horizontalCylinder): 1070 - sp
+            // random modes (no sticky+horizontalCylinder): 600 - spsp
+
+            // LINEBOARD:
+            // random modes (default): 43 - sp
+            // random modes (default): 16 - spsp
+            // random modes (no sticky+horizontalCylinder): 16 - spsp
+
+            // COREBOARD:
+            // all random modes: 6300 or 7200 idk - spsp
+            // all modes: 0 - spsp
+            // all modes -invert -reverseScore: 500 - sp
+
+            if (allModesOof) {
+                for (var i in randomModesOptions) {
+                    cursed[randomModesOptions[i]] = true;
+                }
+            }
+
+            var bagsUsed = 0;
+            var sliceStartX = 9;
+            var sliceStartY = 0;
+            var invertModeAlternateDrawing = false;
+            var badRotation = 0;
+            var badTranslationX = 0;
+            var badTranslationY = 0;
+            var sinkTranslateX = 0;
+            var sinkTranslateY = 0;
+            var sinkRotation = 0;
+            var lockedLeftDirection = 1;
+            var lockedLeftSignRotation = 0;
+            var pisonFipDifficulty = 0.1;
+            var pisonFipDifficultyScale = 0.01;
+            var pisonFipDropTimer = millis();
+            var pisonFipFasterAlert = 0;
+            var pisonFipTilt = 0;
+            var pisonFipTiltTarget = 0;
+            var previousShapeId = [];
+            var previousShape = [];
+            var previousShapeColors = [];
+            var preventFirstTurnDumb = !false;
+            var guaranteeLastIPiece = !false;
+            var heavenRandom = 0;
+            var hellRandom = 0;
+            var isNukeModeShape = false;
+            var nextIsNukeModeShape = false;
+            var randomModesTimers = [];
+            var randomModesLastEvent = millis();
+            var randomModesFlashTimer = 0;
+            var randomModesFlashText = "";
+
+            var score = 0;
+            var lineScore = 0;
+            var difficulty = 0.5;
+            var difficultyScale = 0.03;
+            var gameOver = false;
+
+            // textFont(createFont("monospace"));
+            textFont("monospace");
+
+            var gridWidth = 10;
+            var gridHeight = 20;
+            var grid = [];
+
+            // var global = Object.constructor("return this;")();
+            // var canvas = global["documen" + "tt".charAt(1)].querySelector("canvas");
+            // global.LoopProtector.prototype.leave = function() {};
+
+            gridWidth *= cursed.scale;
+            gridHeight *= cursed.scale;
+
+            for (var y = 0; y < gridHeight; y++) {
+                grid[y] = [];
+                for (var x = 0; x < gridWidth; x++) {
+                    grid[y][x] = -1;
+                    if (cursed.invertMode && y > gridHeight / 2) {
+                        grid[y][x] = 7;
+                    }
+                }
+            }
+
+            var shapes = [
+                [
+                    " x",
+                    "xx",
+                    "x ",
+                ],
+                [
+                    "x ",
+                    "x ",
+                    "xx",
+                ],
+                [
+                    "xx",
+                    "xx",
+                ],
+                [
+                    "x ",
+                    "xx",
+                    " x",
+                ],
+                [
+                    "x",
+                    "x",
+                    "x",
+                    "x",
+                ],
+                [
+                    " x",
+                    " x",
+                    "xx",
+                ],
+                [
+                    "x ",
+                    "xx",
+                    "x ",
+                ],
+                // [
+                //     "x x x x x ",
+                //     " x x x x x",
+                // ],
+                // [
+                //     "xxxx",
+                //     "x  x",
+                //     "x  x",
+                //     "xxxx",
+                // ],
+                // [
+                //     "x     x",
+                // ],
+                // [
+                //     "x   ",
+                //     " x  ",
+                //     "  x ",
+                //     "   x",
+                // ],
+                // [
+                //     "xx"
+                // ],
+            ];
+            var badShapes = [
+                [
+                    "x x x ",
+                    " x x x",
+                ],
+                [
+                    "xxxx",
+                    "x  x",
+                    "x  x",
+                    "xxxx",
+                ],
+                [
+                    "x     x",
+                ],
+                [
+                    "xx         ",
+                ],
+                [
+                    "x   ",
+                    " x  ",
+                    "  x ",
+                    "   x",
+                ],
+                [
+                    "x  ",
+                    "  x",
+                ],
+            ];
+            var horribleShapes = [
+                [
+                    "xxx xxx xx",
+                    "x x x x x ",
+                    "x x x x xx",
+                    "xxx xxx x ",
+                ],
+                [
+                    "x x x x x",
+                    "     x   ",
+                    "   x     ",
+                    "         ",
+                    " x x     ",
+                ],
+                [
+                    "x    x",
+                    "x    x",
+                    "x    x",
+                    "xxxxxx",
+                    "x    x",
+                    "x    x",
+                    "x    x",
+                ],
+                [
+                    "x      x  ",
+                    "xx x x xxx",
+                    "xx xxx x x",
+                ],
+                [
+                    "x x x x x ",
+                    " x x x x x",
+                    "x x x x x ",
+                    " x x x x x",
+                ],
+            ];
+            var squareShapeIndex = 0;
+            var squareShapes = [
+                [
+                    "x",
+                ],
+                [
+                    "xx",
+                    "xx",
+                ],
+                [
+                    "xxx",
+                    "xxx",
+                    "xxx",
+                ],
+                [
+                    "xxxx",
+                    "xxxx",
+                    "xxxx",
+                    "xxxx",
+                ],
+            ];
+
+            var romanNumeral = function(a) {
+                var n = a;
+                var self = {
+                    d: a,
+                };
+                if (self.d === "0") {
+                    n = "o";
+                }
+                if (self.d === "1") {
+                    n = "I";
+                }
+                if (self.d === "2") {
+                    n = "II";
+                }
+                if (self.d === "3") {
+                    n = "III";
+                }
+                if (self.d === "4") {
+                    n = "IV";
+                }
+                if (self.d === "5") {
+                    n = "V";
+                }
+                if (self.d === "6") {
+                    n = "VI";
+                }
+                if (self.d === "7") {
+                    n = "VII";
+                }
+                if (self.d === "8") {
+                    n = "VIII";
+                }
+                if (self.d === "9") {
+                    n = "IX";
+                }
+                if (self.d === 0) {
+                    n = "o";
+                }
+                if (self.d === 1) {
+                    n = "I";
+                }
+                if (self.d === 2) {
+                    n = "II";
+                }
+                if (self.d === 3) {
+                    n = "III";
+                }
+                if (self.d === 4) {
+                    n = "IV";
+                }
+                if (self.d === 5) {
+                    n = "V";
+                }
+                if (self.d === 6) {
+                    n = "VI";
+                }
+                if (self.d === 7) {
+                    n = "VII";
+                }
+                if (self.d === 8) {
+                    n = "VIII";
+                }
+                if (self.d === 9) {
+                    n = "IX";
+                }
+                if (self.d === "?") {
+                    n = "¿";
+                    // if (floor(millis()) % 2 === 1) {
+                        // n = "?";
+                    // }
+                }
+                if (typeof self.d === "string") {
+                    self.d = self.d.toLowerCase();
+                    if (self.d === "a") {
+                        n = "α";
+                    }
+                    if (self.d === "b") {
+                        n = "β";
+                    }
+                    // if (self.d === "c") {
+                    //     n = "chess battle advanced";
+                    // }
+                    if (self.d === "e") {
+                        n = "ε";
+                    }
+                    if (self.d === "o") {
+                        n = "θ";
+                    }
+                    if (self.d === "k") {
+                        n = "κ";
+                    }
+                    if (self.d === "v") {
+                        n = "ν";
+                    }
+                    if (self.d === "p") {
+                        n = "ρ";
+                    }
+                    if (self.d === "t") {
+                        n = "τ";
+                    }
+                    if (self.d === "w") {
+                        n = "ω";
+                    }
+                    if (self.d === "i") {
+                        n = "ι";
+                    }
+                    if (self.d === "d") {
+                        n = "δ";
+                    }
+                    if (self.d === "y") {
+                        n = "γ";
+                    }
+                    if (self.d === "u") {
+                        n = "μ";
+                    }
+                }
+                // return "☺";
+                return n;
+            };
+            var recursiveRomanNumeral = function(a) {
+                a = a + "";
+                var roman = "";
+                for (var i in a) {
+                    roman += romanNumeral(a[i]);
+                }
+                return roman;
+            };
+            var text2 = function(t, x, y) {
+                if (cursed.greekMode) {
+                    t = recursiveRomanNumeral(t);
+                }
+                text(t, x, y);
+            };
+
+            for (var i in shapes) {
+                var newShape = [];
+                for (var j = 0; j < shapes[i].length * cursed.scale; j++) {
+                    newShape[j] = [];
+                    for (var k = 0; k < shapes[i][floor(j / cursed.scale)].length * cursed.scale; k++) {
+                        newShape[j][k] = shapes[i][floor(j / cursed.scale)][floor(k / cursed.scale)];
+                    }
+                }
+                shapes[i] = newShape;
+            }
+
+            var shapeBag = [];
+            for (var i = 0; i < shapes.length; i++) {
+                shapeBag.push(i);
+            }
+
+            var setShapeColors = function(shape, color) {
+                var colors = [];
+                for (var i = 0; i < shape.length; i++) {
+                    colors[i] = [];
+                    for (var j = 0; j < shape[i].length; j++) {
+                        if (shape[i][j] !== "x") {
+                            colors[i][j] = -1;
+                            continue;
+                        }
+                        colors[i][j] = color;
+                    }
+                }
+                return colors;
+            };
+
+            var currShapeId = 0;
+            var currShape = [];
+            var currShapeColors = [];
+            var currShapeX = 0;
+            var currShapeY = 0;
+            var currShapeRotation = 0;
+            var currShapeFallTime = 0;
+            var currShapeFallFails = 0;
+            var currShapeInverted = 1;
+
+            var nextShapeId = 0;
+            var nextShape = shapes[0];
+            var nextShapeColors = [];
+
+            var clearLine = 0;
+
+            var gridDebugNumbers = false;
+
+            if (cursed.squareMode) {
+                currShape = Object.create(squareShapes[0]);
+                currShapeColors = setShapeColors(currShape, 0);
+                currShapeX = max(floor(gridWidth / 2 - currShape[0].length / 2), 0);
+                currShapeY = -currShape.length;
+                currShapeRotation = 0;
+                nextShape = squareShapes[1];
+                nextShapeColors = setShapeColors(nextShape, 1);
+                squareShapeIndex = 2;
+            }
+            else {
+                var id = floor(random(shapeBag.length));
+                while (preventFirstTurnDumb && (shapeBag[id] === 0 || shapeBag[id] === 3)) {
+                    id = floor(random(shapeBag.length));
+                }
+                currShapeId = shapeBag[id];
+                shapeBag.splice(id, 1);
+                currShape = Object.create(shapes[currShapeId]);
+                currShapeColors = setShapeColors(currShape, currShapeId);
+                currShapeX = max(floor(gridWidth / 2 - currShape[0].length / 2), 0);
+                currShapeY = -currShape.length;
+                currShapeRotation = 0;
+                
+                id = floor(random(shapeBag.length));
+                while (preventFirstTurnDumb && !cursed.squareMode && currShapeId === 2 && (shapeBag[id] === 0 || shapeBag[id] === 3)) {
+                    id = floor(random(shapeBag.length));
+                }
+                nextShapeId = shapeBag[id];
+                shapeBag.splice(id, 1);
+                nextShape = Object.create(shapes[nextShapeId]);
+                nextShapeColors = setShapeColors(nextShape, nextShapeId);
+            }
+
+            var colorMode3 = RGB;
+            var colorMode2 = function(mode) {
+                colorMode3 = mode;
+                colorMode(mode);
+            };
+            var fill2 = function(r, g, b, a) {
+                if (cursed.realInvertMode) {
+                    var c = color(r, g, b);
+                    colorMode(RGB);
+                    fill(255 - red(c), 255 - green(c), 255 - blue(c), a);
+                    colorMode(colorMode3);
+                } else {
+                    fill(r, g, b, a);
+                }
+            };
+            var stroke2 = function(r, g, b, a) {
+                if (cursed.realInvertMode) {
+                    var c = color(r, g, b);
+                    colorMode(RGB);
+                    stroke(255 - red(c), 255 - green(c), 255 - blue(c), a);
+                    colorMode(colorMode3);
+                } else {
+                    stroke(r, g, b, a);
+                }
+            };
+
+            var colors = [color(255, 0, 0), color(255, 125, 0), color(255, 255, 0), color(0, 255, 0), color(0, 255, 255), color(0, 0, 255), color(255, 0, 255), color(50, 50, 50)];
+            var invertedColors = [color(255, 200, 200), color(255, 230, 200), color(255, 255, 200), color(200, 255, 200), color(200, 255, 255), color(200, 200, 255), color(255, 200, 255), color(210, 210, 210)];
+            var pisonFipColors = [0, 1, 2, 3, 4, 5, 6, 7];
+            var permuteColors = function() {
+                var c = [];
+                for (var i = 0; i < 8; i++) {
+                    var r = floor(random(pisonFipColors.length));
+                    c[i] = pisonFipColors[r];
+                    pisonFipColors.splice(r, 1);
+                }
+                pisonFipColors = c;
+            };
+            var setColor = function(i, inverted) {
+                if (cursed.pisonFipMode) {
+                    i = pisonFipColors[i];
+                }
+                var colors2 = colors;
+                if (inverted && !invertModeAlternateDrawing) {
+                    // var base = 125;
+                    // for (var i in colors) {
+                    //     colors[i] = color(red(colors[i]) * base / 255 + base, green(colors[i]) * base / 255 + base, blue(colors[i]) * base / 255 + base);
+                    // }
+                    colors = invertedColors;
+                }
+                fill2(colors2[i]);
+            };
+
+            var playSound2 = function(sound) {
+                if (cursed.pisonFipMode) {
+                    playSound(getSound("retro/coin"));
+                } else {
+                    playSound(sound);
+                }
+            };
+
+            var tryMove = function(undo, fakeMove) {
+                if (cursed.horizontalCylinderMode) {
+                    currShapeX = (currShapeX + gridWidth) % gridWidth;
+                }
+                if (cursed.verticalCylinderMode) {
+                    currShapeY = (currShapeY + gridHeight) % gridHeight;
+                }
+                for (var i = 0; i < currShape.length; i++) {
+                    for (var j = 0; j < currShape[i].length; j++) {
+                        if (currShape[i][j] !== "x") {
+                            continue;
+                        }
+                        var x = currShapeX + j;
+                        var y = currShapeY + i;
+                        if (cursed.horizontalCylinderMode) {
+                            x = (x + gridWidth) % gridWidth;
+                        }
+                        if (cursed.verticalCylinderMode) {
+                            y = (y + gridHeight) % gridHeight;
+                        }
+                        if (x < 0 || x >= gridWidth) {
+                            undo();
+                            return;
+                        }
+                        if (currShapeInverted === 1) {
+                            if (y < 0) {
+                                continue;
+                            }
+                            if (y >= gridHeight) {
+                                undo();
+                                return;
+                            }
+                        }
+                        else {
+                            if (y < 0) {
+                                undo();
+                                return;
+                            }
+                            if (y >= gridHeight) {
+                                continue;
+                            }
+                        }
+                        if (cursed.sliceOffMode && y < sliceStartY) {
+                            continue;
+                        }
+                        if (((grid[y][x] !== -1 && (!cursed.noAllyClipMode || grid[y][x] !== currShapeColors[i][j])) ^ (currShapeInverted === -1)) && !cursed.additiveMode) {
+                            undo();
+                            return;
+                        }
+                            
+                    }
+                }
+                if (cursed.stickyMode && !fakeMove) {
+                    var tiles = [];
+                    var visited = [];
+                    for (var i = 0; i < currShape.length; i++) {
+                        for (var j = 0; j < currShape[i].length; j++) {
+                            if (currShape[i][j] !== "x") {
+                                continue;
+                            }
+                            var x = currShapeX + j;
+                            var y = currShapeY + i;
+                            var queue = [];
+                            queue.push([x, y, currShapeColors[i][j]]);
+                            if (visited[x + ":" + y]) {
+                                continue;
+                            }
+                            visited[x + ":" + y] = true;
+                            while (queue.length > 0) {
+                                var curr = queue.pop();
+                                var cx = curr[0];
+                                var cy = curr[1];
+                                tiles.push(curr);
+                                if (grid[cy] !== undefined) {
+                                    if (currShapeInverted === 1) {
+                                        grid[cy][cx] = -1;
+                                    }
+                                    else {
+                                        grid[cy][cx] = 7;
+                                    }
+                                    if (cx > 0 && ((grid[cy][cx - 1] !== -1 && (!cursed.noAllyClipMode || grid[cy][cx - 1] !== currShapeColors[i][j])) ^ (currShapeInverted === -1)) && !cursed.additiveMode) {
+                                        queue.push([cx - 1, cy, grid[cy][cx - 1]]);
+                                        visited[(cx - 1) + ":" + cy] = true;
+                                    }
+                                    if (cx < gridWidth - 1 && ((grid[cy][cx + 1] !== -1 && (!cursed.noAllyClipMode || grid[cy][cx + 1] !== currShapeColors[i][j])) ^ (currShapeInverted === -1)) && !cursed.additiveMode) {
+                                        queue.push([cx + 1, cy, grid[cy][cx + 1]]);
+                                        visited[(cx + 1) + ":" + cy] = true;
+                                    }
+                                }
+                                if (cy - 1 >= 0 && cy - 1 < gridHeight && ((grid[cy - 1][cx] !== -1 && (!cursed.noAllyClipMode || grid[cy - 1][cx] !== currShapeColors[i][j])) ^ (currShapeInverted === -1)) && !cursed.additiveMode) {
+                                    queue.push([cx, cy - 1, grid[cy - 1][cx]]);
+                                    visited[cx + ":" + (cy - 1)] = true;
+                                }
+                                if (cy + 1 >= 0 && cy + 1 < gridHeight && ((grid[cy + 1][cx] !== -1 && (!cursed.noAllyClipMode || grid[cy + 1][cx] !== currShapeColors[i][j])) ^ (currShapeInverted === -1)) && !cursed.additiveMode) {
+                                    queue.push([cx, cy + 1, grid[cy + 1][cx]]);
+                                    visited[cx + ":" + (cy + 1)] = true;
+                                }
+                            }
+                        }
+                    }
+                    var minX = 100;
+                    var maxX = 0;
+                    var minY = 100;
+                    var maxY = 0;
+                    for (var i in tiles) {
+                        minX = min(minX, tiles[i][0]);
+                        maxX = max(maxX, tiles[i][0]);
+                        minY = min(minY, tiles[i][1]);
+                        maxY = max(maxY, tiles[i][1]);
+                    }
+                    var oldShapeColors = currShapeColors;
+                    currShape = [];
+                    currShapeColors = [];
+                    for (var i = minY; i <= maxY; i++) {
+                        currShape.push([]);
+                        currShapeColors.push([]);
+                        for (var j = minX; j <= maxX; j++) {
+                            currShape[currShape.length - 1].push(" ");
+                            currShapeColors[currShape.length - 1].push(-1);
+                        }
+                    }
+                    for (var i in tiles) {
+                        currShape[tiles[i][1] - minY][tiles[i][0] - minX] = "x";
+                        currShapeColors[tiles[i][1] - minY][tiles[i][0] - minX] = tiles[i][2];
+                    }
+                    currShapeX = minX;
+                    currShapeY = minY;
+                }
+            };
+            var spawnShape = function() {
+                for (var i = 0; i < currShape.length; i++) {
+                    for (var j = 0; j < currShape[i].length; j++) {
+                        if (currShape[i][j] !== "x") {
+                            continue;
+                        }
+                        var x = currShapeX + j;
+                        var y = currShapeY + i;
+                        if (cursed.horizontalCylinderMode) {
+                            x = (x + gridWidth) % gridWidth;
+                        }
+                        if (cursed.verticalCylinderMode) {
+                            y = (y + gridHeight) % gridHeight;
+                        }
+                        if (currShapeInverted === 1) {
+                            if (y < 0) {
+                                gameOver = true;
+                                if (cursed.soundMode) {
+                                    playSound2(getSound("retro/rumble"));
+                                    playSound2(getSound("retro/boom2"));
+                                    playSound2(getSound("retro/laser2"));
+                                }
+                                return;
+                            }
+                        }
+                        else {
+                            if (y >= gridHeight) {
+                                gameOver = true;
+                                if (cursed.soundMode) {
+                                    playSound2(getSound("retro/rumble"));
+                                    playSound2(getSound("retro/boom2"));
+                                    playSound2(getSound("retro/laser2"));
+                                }
+                                return;
+                            }
+                        }
+                        if (cursed.sliceOffMode && y < sliceStartY) {
+                            gameOver = true;
+                            if (cursed.soundMode) {
+                                playSound2(getSound("retro/rumble"));
+                                playSound2(getSound("retro/boom2"));
+                                playSound2(getSound("retro/laser2"));
+                            }
+                            return;
+                        }
+                        if (cursed.sliceOffMode && x > sliceStartX) {
+                            gameOver = true;
+                            if (cursed.soundMode) {
+                                playSound2(getSound("retro/rumble"));
+                                playSound2(getSound("retro/boom2"));
+                                playSound2(getSound("retro/laser2"));
+                            }
+                            return;
+                        }
+                        if (currShapeInverted === 1) {
+                            if (cursed.additiveMode) {
+                                if (grid[y][x] === -1) {
+                                    grid[y][x] = currShapeColors[i][j];
+                                } else {
+                                    grid[y][x] = (grid[y][x] + currShapeColors[i][j] + 1) % 8 - 1;
+                                }
+                            } else {
+                                grid[y][x] = currShapeColors[i][j];
+                            }
+                        }
+                        else {
+                            grid[y][x] = -1;
+                        }
+                    }
+                }
+                if (isNukeModeShape) {
+                    for (var i = -nukeStrength; i <= nukeStrength; i++) {
+                        for (var j = -nukeStrength; j <= nukeStrength; j++) {
+                            var x = currShapeX + j;
+                            var y = currShapeY + i;
+                            if (cursed.horizontalCylinderMode) {
+                                x = (x + gridWidth) % gridWidth;
+                            }
+                            if (cursed.verticalCylinderMode) {
+                                y = (y + gridHeight) % gridHeight;
+                            }
+                            if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) {
+                                continue;
+                            }
+                            var d = nukeStrength - dist(0, 0, j, i);
+                            if (random(nukeStrength) < d) {
+                                grid[y][x] = -1;
+                                score++;
+                                if (cursed.soundMode) {
+                                    if (random() < 0.25) {
+                                        playSound2(getSound("retro/rumble"));
+                                    } else if (random() < 0.5) {
+                                        playSound2(getSound("retro/boom1"));
+                                    } else {
+                                        playSound2(getSound("retro/boom2"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                isNukeModeShape = false;
+                if (autoResetOnInaccuracy && cursed.sliceOffMode && sliceStartY < 12) {
+                    var lineCleared = false;
+                    if (cursed.horizontalClearing) {
+                        for (var y = 0; y < gridHeight; y++) {
+                            var filled = true;
+                            for (var x = 0; x < gridWidth; x++) {
+                                if (grid[y][x] === -1) {
+                                    filled = false;
+                                    break;
+                                }
+                            }
+                            if (filled) {
+                                lineCleared = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (cursed.verticalClearing) {
+                        for (var x = 0; x < gridWidth; x++) {
+                            var filled = true;
+                            for (var y = 0; y < gridHeight; y++) {
+                                if (grid[y][x] === -1) {
+                                    filled = false;
+                                    break;
+                                }
+                            }
+                            if (filled) {
+                                lineCleared = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!lineCleared) {
+                        for (var x = 0; x < gridWidth; x++) {
+                            var hasTile = false;
+                            for (var y = 0; y < gridHeight; y++) {
+                                if (grid[y][x] !== -1) {
+                                    hasTile = true;
+                                }
+                                else if (hasTile) {
+                                    if (x !== 0 && grid[y][x - 1] === -1 || x !== gridWidth - 1 && grid[y][x + 1] === -1) {
+                                        continue;
+                                    }
+                                    Program.restart();
+                                }
+                            }
+                        }
+                    }
+                }
+                if (cursed.invertMode) {
+                    currShapeInverted *= -1;
+                    if (cursed.reverseScoreMode) {
+                        score -= 2;
+                        difficulty = max(difficultyScale, difficulty - difficultyScale / 10);
+                    } else {
+                        score += 2;
+                        difficulty += difficultyScale / 10;
+                    }
+                    if (cursed.soundMode) {
+                        playSound2(getSound("retro/coin"));
+                    }
+                }
+                previousShapeId = currShapeId;
+                previousShape = currShape;
+                previousShapeColors = currShapeColors;
+                currShapeId = nextShapeId;
+                currShape = nextShape;
+                currShapeColors = nextShapeColors;
+                currShapeX = max(floor(gridWidth / 2 - currShape[0].length / 2), 0);
+                isNukeModeShape = nextIsNukeModeShape;
+                nextIsNukeModeShape = false;
+                if (cursed.oneDirectionMode) {
+                    lockedLeftDirection *= -1;
+                    if (lockedLeftDirection === 1) {
+                        currShapeX = 0;
+                    }
+                    else {
+                        currShapeX = gridWidth - currShape[0].length;
+                    }
+                }
+                if (currShapeInverted === 1) {
+                    currShapeY = -currShape.length;
+                }
+                else {
+                    currShapeY = gridHeight;
+                }
+                currShapeRotation = 0;
+                // nextShapeId = floor(random(shapes.length));
+                var id = floor(random(shapeBag.length));
+                if (guaranteeLastIPiece && bagsUsed === 7 && shapeBag.length === 7) {
+                    id = 4;
+                }
+                nextShapeId = shapeBag[id];
+                shapeBag.splice(id, 1);
+                if (shapeBag.length === 0) {
+                    for (var i = 0; i < shapes.length; i++) {
+                        shapeBag.push(i);
+                    }
+                    bagsUsed += 1;
+                }
+                nextShape = Object.create(shapes[nextShapeId]);
+                nextShapeColors = setShapeColors(nextShape, nextShapeId);
+                heavenRandom += 1;
+                if (cursed.squareMode) {
+                    nextShape = squareShapes[squareShapeIndex];
+                    nextShapeColors = setShapeColors(nextShape, squareShapeIndex);
+                    squareShapeIndex = (squareShapeIndex + 1) % squareShapes.length;
+                }
+                if (cursed.heavenMode && currShape[0].length === gridWidth && currShape.length === 1) {
+                    for (var y = 0; y < gridHeight; y++) {
+                        var hasTile = false;
+                        var filled = true;
+                        for (var x = 0; x < gridWidth; x++) {
+                            if (grid[y][x] !== -1) {
+                                hasTile = true;
+                            }
+                            else {
+                                filled = false;
+                            }
+                        }
+                        if (hasTile && !filled) {
+                            nextShape = [];
+                            nextShape[0] = [];
+                            for (var x1 = 0; x1 < gridWidth; x1++) {
+                                nextShape[0][x1] = "x";
+                            }
+                            for (var x1 = 0; x1 < gridWidth; x1++) {
+                                var valid = true;
+                                var index = 1;
+                                for (var y1 = y; y1 < gridHeight; y1++) {
+                                    filled = true;
+                                    for (var x2 = 0; x2 < gridWidth; x2++) {
+                                        if (grid[y1][x2] === -1) {
+                                            filled = false;
+                                            break;
+                                        }
+                                    }
+                                    if (filled) {
+                                        continue;
+                                    }
+                                    if (nextShape[index] === undefined) {
+                                        nextShape[index] = [];
+                                    }
+                                    if (grid[y1][x1] === -1 && valid) {
+                                        nextShape[index][x1] = "x";
+                                    }
+                                    else {
+                                        valid = false;
+                                        nextShape[index][x1] = " ";
+                                    }
+                                    index += 1;
+                                }
+                            }
+                            nextShapeColors = setShapeColors(nextShape, nextShapeId);
+                            break;
+                        }
+                    }
+                    heavenRandom = 0;
+                }
+                else if (cursed.heavenMode && random() < 0.1) {
+                    nextShape = [[]];
+                    for (var x = 0; x < gridWidth; x++) {
+                        nextShape[0][x] = "x";
+                    }
+                    nextShapeColors = setShapeColors(nextShape, nextShapeId);
+                    heavenRandom = 0;
+                }
+                else if (cursed.nukeMode && random() < 0.2) {
+                    nextIsNukeModeShape = true;
+                    nextShape = [["x"]];
+                    nextShapeColors = setShapeColors(nextShape, 3);
+                }
+                else if (cursed.badPiecesMode && random() < 0.3) {
+                    nextShape = Object.create(badShapes[floor(random(badShapes.length))]);
+                    nextShapeColors = setShapeColors(nextShape, nextShapeId);
+                }
+                else if (cursed.horriblePiecesMode && random() < 0.1) {
+                    nextShape = Object.create(horribleShapes[floor(random(horribleShapes.length))]);
+                    nextShapeColors = setShapeColors(nextShape, nextShapeId);
+                }
+                else if (cursed.hellMode && random() < 0.5) {
+                    nextShape = Object.create(currShape);
+                    if (nextShape[0].length === gridWidth) {
+                        nextShape = Object.create(shapes[nextShapeId]);
+                    }
+                    var tiles = [];
+                    for (var i = 0; i < nextShape.length; i++) {
+                        for (var j = 0; j < nextShape[i].length; j++) {
+                            if (nextShape[i][j] !== "x") {
+                                continue;
+                            }
+                            tiles.push([j, i]);
+                            tiles.push([j, i]);
+                        }
+                    }
+                    var change = floor(random(tiles.length));
+                    var works = false;
+                    while (!works) {
+                        tiles[change][0] += round(random(-1, 1));
+                        tiles[change][1] += round(random(-1, 1));
+                        // tiles[change][0] += 1;
+                        works = true;
+                        for (var i = 0; i < tiles.length; i++) {
+                            if (i !== change && tiles[i][0] === tiles[change][0] && tiles[i][1] === tiles[change][1]) {
+                                works = false;
+                            }
+                        }
+                    }
+                    var minX = 100;
+                    var maxX = 0;
+                    var minY = 100;
+                    var maxY = 0;
+                    for (var i in tiles) {
+                        minX = min(minX, tiles[i][0]);
+                        maxX = max(maxX, tiles[i][0]);
+                        minY = min(minY, tiles[i][1]);
+                        maxY = max(maxY, tiles[i][1]);
+                    }
+                    nextShape = [];
+                    for (var i = minY; i <= maxY; i++) {
+                        nextShape.push([]);
+                        for (var j = minX; j <= maxX; j++) {
+                            nextShape[nextShape.length - 1].push(" ");
+                        }
+                    }
+                    for (var i in tiles) {
+                        nextShape[tiles[i][1] - minY][tiles[i][0] - minX] = "x";
+                    }
+                    nextShapeColors = setShapeColors(nextShape, nextShapeId);
+                    hellRandom = min(hellRandom, 0);
+                    hellRandom -= 1;
+                }
+                else {
+                    hellRandom = max(hellRandom, 0);
+                    hellRandom += 1;
+                }
+                if (cursed.randomModes) {
+                    for (var i = 0; i < randomModesTimers.length; i++) {
+                        randomModesTimers[i][1]--;
+                        if (randomModesTimers[i][1] <= 0) {
+                            cursed[randomModesTimers[i][0]] = false;
+                            randomModesTimers.splice(i, 1);
+                            i--;
+                        }
+                    }
+                    if (random() < randomModesFrequency + score * randomModesDifficultyScale) {
+                        var mode = randomModesOptions[floor(random(0, randomModesOptions.length))];
+                        if (!cursed[mode]) {
+                            cursed[mode] = true;
+                            var count = floor(random(randomModesTimeRange[0], randomModesTimeRange[1]));
+                            randomModesTimers.push([mode, count, count]);
+                            randomModesFlashText = mode.replace("Mode", "");
+                            randomModesFlashTimer = 90;
+                            if (cursed.soundMode) {
+                                playSound2(getSound("retro/jump1"));
+                            }
+                        }
+                    }
+                }
+                if (cursed.soundMode) {
+                    playSound2(getSound("retro/hit2"));
+                }
+            };
+            var rotateShape = function(times) {
+                if (cursed.backwardsRotations) {
+                    times = 4 - times;
+                }
+                var oldShape = currShape;
+                var oldShapeColors = currShapeColors;
+                var oldShapeX = currShapeX;
+                var oldShapeY = currShapeY;
+                for (var t = 0; t < times; t++) {
+                    var newShape = [];
+                    var newShapeColors = [];
+                    for (var j = 0; j < currShape[0].length; j++) {
+                        newShape[j] = [];
+                        newShapeColors[j] = [];
+                        for (var i = 0; i < currShape.length; i++) {
+                            newShape[j][i] = currShape[currShape.length - 1 - i][j];
+                            newShapeColors[j][i] = currShapeColors[currShape.length - 1 - i][j];
+                        }
+                    }
+                    currShapeX = currShapeX + round(currShape[0].length / 2 - newShape[0].length / 2 + currShapeRotation % 4 / 50 - 1 / 25);
+                    currShapeY = currShapeY + round(currShape.length / 2 - newShape.length / 2 + (currShapeRotation + 3) % 4 / 50 - 1 / 25);
+                    currShape = newShape;
+                    currShapeColors = newShapeColors;
+                    currShapeRotation += 1;
+                    if (cursed.horizontalCylinderMode) {
+                        currShapeX = (currShapeX + gridWidth) % gridWidth;
+                    }
+                    else {
+                        currShapeX = min(max(currShapeX, 0), gridWidth - currShape[0].length);
+                    }
+                    if (cursed.verticalCylinderMode) {
+                        currShapeY = (currShapeY + gridHeight) % gridHeight;
+                    }
+                    else {
+                        currShapeY = min(currShapeY, gridHeight - currShape.length);
+                    }
+                }
+                if (cursed.badRotations) {
+                    badRotation -= times * 90;
+                }
+                tryMove(function() {
+                    currShape = oldShape;
+                    currShapeColors = oldShapeColors;
+                    currShapeX = oldShapeX;
+                    currShapeY = oldShapeY;
+                    currShapeRotation -= times;
+                    if (cursed.badRotations) {
+                        badRotation += times * 90;
+                    }
+                });
+            };
+
+            var doAction = function(key) {
+                if (!cursed.forcedDropMode) {
+                    currShapeFallFails = 0;
+                }
+                var leftKey = 37;
+                var rightKey = 39;
+                if (cursed.invertMoveMode) {
+                    leftKey = 39;
+                    rightKey = 37;
+                }
+                if (key === leftKey) {
+                    if (cursed.oneDirectionMode && lockedLeftDirection === 1) {
+                        return;
+                    }
+                    if (cursed.moveAllMode && cursed.horizontalCylinderMode) {
+                        currShapeX -= 1;
+                        badTranslationX += 1;
+                        pisonFipTiltTarget -= 50 * pisonFipDifficulty;
+                        var nextGrid = [];
+                        for (var y = 0; y < gridHeight; y++) {
+                            nextGrid[y] = [];
+                            for (var x = 0; x < gridWidth; x++) {
+                                nextGrid[y][x] = grid[y][(x + 1) % gridWidth];
+                            }
+                        }
+                        grid = nextGrid;
+                        return;
+                    }
+                    var move = function() {
+                        var worked = true;
+                        currShapeX -= 1;
+                        badTranslationX += 1;
+                        pisonFipTiltTarget -= 50 * pisonFipDifficulty;
+                        tryMove(function() {
+                            currShapeX += 1;
+                            badTranslationX -= 1;
+                            pisonFipTiltTarget += 50 * pisonFipDifficulty;
+                            worked = false;
+                        });
+                        if (cursed.moveAllMode) {
+                            for (var y = 0; y < gridHeight; y++) {
+                                move: for (var x = 1; x < gridWidth; x++) {
+                                    if (grid[y][x - 1] !== -1) {
+                                        continue;
+                                    }
+                                    if (grid[y][x] === -1) {
+                                        continue;
+                                    }
+                                    for (var i = 0; i < currShape.length; i++) {
+                                        for (var j = 0; j < currShape[i].length; j++) {
+                                            if (currShape[i][j] !== "x") {
+                                                continue;
+                                            }
+                                            var cx = currShapeX + j;
+                                            var cy = currShapeY + i;
+                                            if (cx === x - 1 && cy === y) {
+                                                continue move;
+                                            }
+                                        }
+                                    }
+                                    grid[y][x - 1] = grid[y][x];
+                                    grid[y][x] = -1;
+                                    worked = true;
+                                }
+                            }
+                        }
+                        return worked;
+                    };
+                    if (cursed.iceMode && !cursed.horizontalCylinderMode) {
+                        while (move()) {
+                        
+                        }
+                    }
+                    else {
+                        move();
+                    }
+                }
+                if (key === rightKey) {
+                    if (cursed.oneDirectionMode && lockedLeftDirection === -1) {
+                        return;
+                    }
+                    if (cursed.moveAllMode && cursed.horizontalCylinderMode) {
+                        currShapeX += 1;
+                        badTranslationX -= 1;
+                        pisonFipTiltTarget += 50 * pisonFipDifficulty;
+                        var nextGrid = [];
+                        for (var y = 0; y < gridHeight; y++) {
+                            nextGrid[y] = [];
+                            for (var x = 0; x < gridWidth; x++) {
+                                nextGrid[y][x] = grid[y][(x + gridWidth - 1) % gridWidth];
+                            }
+                        }
+                        grid = nextGrid;
+                        return;
+                    }
+                    var move = function() {
+                        var worked = true;
+                        currShapeX += 1;
+                        badTranslationX -= 1;
+                        pisonFipTiltTarget += 50 * pisonFipDifficulty;
+                        tryMove(function() {
+                            currShapeX -= 1;
+                            badTranslationX += 1;
+                            pisonFipTiltTarget -= 50 * pisonFipDifficulty;
+                            worked = false;
+                        });
+                        if (cursed.moveAllMode) {
+                            for (var y = 0; y < gridHeight; y++) {
+                                move: for (var x = gridWidth - 2; x >= 0; x--) {
+                                    if (grid[y][x + 1] !== -1) {
+                                        continue;
+                                    }
+                                    if (grid[y][x] === -1) {
+                                        continue;
+                                    }
+                                    for (var i = 0; i < currShape.length; i++) {
+                                        for (var j = 0; j < currShape[i].length; j++) {
+                                            if (currShape[i][j] !== "x") {
+                                                continue;
+                                            }
+                                            var cx = currShapeX + j;
+                                            var cy = currShapeY + i;
+                                            if (cx === x + 1 && cy === y) {
+                                                continue move;
+                                            }
+                                        }
+                                    }
+                                    grid[y][x + 1] = grid[y][x];
+                                    grid[y][x] = -1;
+                                    worked = true;
+                                }
+                            }
+                        }
+                        return worked;
+                    };
+                    if (cursed.iceMode && !cursed.horizontalCylinderMode) {
+                        while (move()) {
+                        
+                        }
+                    }
+                    else {
+                        move();
+                    }
+                }
+                if (key === 40) {
+                    if (cursed.noDownMovementMode) {
+                        return;
+                    }
+                    currShapeY += 1 * currShapeInverted;
+                    badTranslationY -= 1 * currShapeInverted;
+                    tryMove(function() {
+                        currShapeY -= 1 * currShapeInverted;
+                        badTranslationY += 1 * currShapeInverted;
+                        spawnShape();
+                    });
+                }
+                if (key === 32) {
+                    var worked = true;
+                    var failed = false;
+                    var oldY = currShapeY;
+                    if (!cursed.noDropping) {
+                        var f = function() {
+                            worked = false;
+                            currShapeY -= 1 * currShapeInverted;
+                        };
+                        while (worked) {
+                            currShapeY += 1 * currShapeInverted;
+                            tryMove(f);
+                            if (currShapeY === oldY) {
+                                failed = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!failed) {
+                        spawnShape();
+                        pisonFipDropTimer = millis();
+                    }
+                }
+                if (key === 38) {
+                    if (cursed.noRotating) {
+                        currShapeY -= 1 * currShapeInverted;
+                        badTranslationY += 1 * currShapeInverted;
+                        tryMove(function() {
+                            currShapeY += 1 * currShapeInverted;
+                            badTranslationY -= 1 * currShapeInverted;
+                            spawnShape();
+                        });
+                        return;
+                    }
+                    rotateShape(1);
+                }
+                if (key === 70) {
+                    if (cursed.noRotating) {
+                        return;
+                    }
+                    rotateShape(2);
+                }
+                if (key === 90) {
+                    if (cursed.noRotating) {
+                        return;
+                    }
+                    rotateShape(3);
+                }
+                if (key === 16) {
+                    autoResetOnInaccuracy = false;
+                }
+                if (key === 82 && cursed.restartKeybind) {
+                    Program.restart();
+                }
+            };
+            keyPressed = function() {
+                if (gameOver || clearLine > 0 || cursed.mouseMode) {
+                    return;
+                }
+                doAction(keyCode);
+            };
+            mousePressed = function() {
+                if (gameOver || clearLine > 0 || !cursed.mouseMode) {
+                    return;
+                }
+                if (mouseButton === LEFT) {
+                    doAction(38);
+                } else if (mouseButton === RIGHT) {
+                    doAction(32);
+                }
+            };
+
+            var s = height / gridHeight;
+
+            var drawRect = function(x, y) {
+                if (cursed.pisonFipMode) {
+                    x += sin(millis() / 1000 * 90) * 2 * pisonFipDifficulty;
+                    y += sin(x * 90 / 5 + millis() / 1000 * 90) * 2 * sin(millis() / 1000 * 90 * 4 / 3) * 3 * pisonFipDifficulty;
+                }
+                rect(x * s, y * s, s, s);
+            };
+            var drawGridNumber = function(x, y, n) {
+                if (gridDebugNumbers || cursed.additiveMode) {
+                    fill(0, 0, 0);
+                    text2(n, (x + 0.5) * s, (y + 0.5) * s);
+                }
+            };
+            var drawBackground = function() {
+                if (!cursed.verticalCylinderMode) {
+                    fill2(125, 225, 225);
+                    rect(0, -height, width / 2, height);
+                    fill2(0, 0, 0);
+                    rect(0, height, width / 2, height);
+                    if (cursed.cloudMode) {
+                        noStroke();
+                        for (var y = 0; y < gridHeight; y++) {
+                            for (var x = 0; x < gridWidth; x++) {
+                                var c = noise(x / 10 - millis() / 10000, y / 10);
+                                c = pow(c, 2) * 2;
+                                fill2(255, 255, 255, c * 255);
+                                rect(x * s, y * s - height, s, s);
+                            }
+                        }
+                        for (var y = 0; y < gridHeight; y++) {
+                            for (var x = 0; x < gridWidth; x++) {
+                                var c = noise(x / 10 + millis() / 10000, y / 10);
+                                c = pow(c, 2) * 2;
+                                fill2(255, 0, 0, c * 255 / 2);
+                                rect(x * s, y * s + height, s, s);
+                            }
+                        }
+                        stroke2(0, 0, 0);
+                        noFill();
+                        rect(0, -height, width / 2, height * 3);
+                    }
+                }
+                fill2(255, 255, 255);
+                if (cursed.pisonFipMode) {
+                    fill2(255, 255, 255, 50 + 50 * sin(millis() / 1000 * 90 * 0.4));
+                }
+                rect(0, 0, width / 2, height);
+            };
+            var drawBelow = function() {
+                var filledRows = [];
+                var filledColumns = [];
+                textSize(14);
+                textAlign(CENTER, CENTER);
+                if (cursed.horizontalClearing) {
+                    for (var y = 0; y < gridHeight; y++) {
+                        var filled = true;
+                        for (var x = 0; x < gridWidth; x++) {
+                            if (grid[y][x] === -1) {
+                                filled = false;
+                                break;
+                            }
+                        }
+                        if (filled) {
+                            filledRows[y] = true;
+                        }
+                    }
+                }
+                if (cursed.verticalClearing) {
+                    for (var x = 0; x < gridWidth; x++) {
+                        var filled = true;
+                        for (var y = 0; y < gridHeight; y++) {
+                            if (grid[y][x] === -1) {
+                                filled = false;
+                                break;
+                            }
+                        }
+                        if (filled) {
+                            filledColumns[x] = true;
+                        }
+                    }
+                }
+                for (var y = 0; y < gridHeight; y++) {
+                    for (var x = 0; x < gridWidth; x++) {
+                        if (cursed.fogRange >= 0) {
+                            var minDist = 1000;
+                            for (var i = 0; i < currShape.length; i++) {
+                                for (var j = 0; j < currShape[i].length; j++) {
+                                    if (currShape[i][j] !== "x") {
+                                        continue;
+                                    }
+                                    var x1 = currShapeX + j;
+                                    var y1 = currShapeY + i;
+                                    minDist = min(minDist, max(abs(x1 - x), abs(y1 - y)));
+                                }
+                            }
+                            if (minDist > cursed.fogRange) {
+                                fill2(0, 0, 0);
+                                drawRect(x, y);
+                                continue;
+                            }
+                        }
+                        if (cursed.sliceOffMode && (x > sliceStartX || y < sliceStartY)) {
+                            fill2(0, 0, 0);
+                            drawRect(x, y);
+                            continue;
+                        }
+                        if (clearLine % 20 > 10 && (filledRows[y] || filledColumns[x])) {
+                            continue;
+                        }
+                        if (currShapeInverted === -1 && invertModeAlternateDrawing) {
+                            if (grid[y][x] === -1) {
+                                setColor(7);
+                                drawRect(x, y);
+                            }
+                        }
+                        else {
+                            if (grid[y][x] !== -1) {
+                                setColor(grid[y][x]);
+                                drawRect(x, y);
+                                drawGridNumber(x, y, grid[y][x]);
+                            }
+                        }
+                    }
+                }
+            };
+            var drawAbove = function() {
+                // rect(currShapeX * s, currShapeY * s, currShape[0].length * s, currShape.length * s);
+                for (var i = 0; i < currShape.length; i++) {
+                    for (var j = 0; j < currShape[i].length; j++) {
+                        if (currShape[i][j] !== "x") {
+                            continue;
+                        }
+                        var x = currShapeX + j;
+                        var y = currShapeY + i;
+                        if (currShapeColors[i] !== undefined && currShapeColors[i][j] !== undefined) {
+                            setColor(currShapeColors[i][j], currShapeInverted === -1);
+                        }
+                        else {
+                            setColor(currShapeId, currShapeInverted === -1);
+                        }
+                        drawRect(x, y);
+                        drawGridNumber(x, y, currShapeId);
+                    }
+                }
+                fill2(0, 0, 0, 125);
+                if (currShapeInverted === 1 || invertModeAlternateDrawing) {
+                    fill2(0, 0, 0, 75);
+                }
+                else {
+                    fill2(255, 255, 255, 75);
+                }
+                var worked = true;
+                var failed = false;
+                var oldY = currShapeY;
+                var f = function() {
+                    worked = false;
+                    currShapeY -= 1 * currShapeInverted;
+                };
+                while (worked) {
+                    currShapeY += 1 * currShapeInverted;
+                    tryMove(f, true);
+                    if (currShapeY === oldY) {
+                        failed = true;
+                        break;
+                    }
+                }
+                if (!failed) {
+                    for (var i = 0; i < currShape.length; i++) {
+                        for (var j = 0; j < currShape[i].length; j++) {
+                            if (currShape[i][j] !== "x") {
+                                continue;
+                            }
+                            var x = currShapeX + j;
+                            var y = currShapeY + i;
+                            // setColor(currShapeId);
+                            drawRect(x, y);
+                        }
+                    }
+                }
+                currShapeY = oldY;
+            };
+
+            draw = function() {
+                if (cursed.hueSaturationBalueMode) {
+                    colorMode2(HSB);
+                } else {
+                    colorMode2(RGB);
+                }
+                if (cursed.wroMode && !gameOver) {
+                    if (currShapeId === 0) {
+                        if (currShapeFallTime <= 0) {
+                            rotateShape(1);
+                            if (cursed.soundMode) {
+                                playSound2(getSound("retro/laser4"));
+                            }
+                        }
+                    } else if (currShapeId === 3) {
+                        if (currShapeFallTime <= 0) {
+                            rotateShape(3);
+                            if (cursed.soundMode) {
+                                playSound2(getSound("retro/laser4"));
+                            }
+                        }
+                    }
+                }
+                if (cursed.mouseMode) {
+                    var mouseGridX = floor((mouseX - width / 4) / s);
+                    var shapeCenterX = ceil(currShapeX + (currShape[0].length - 1) / 2);
+                    if (mouseGridX < shapeCenterX) {
+                        doAction(37);
+                    } else if (mouseGridX > shapeCenterX) {
+                        doAction(39);
+                    }
+                }
+                if (!gameOver) {
+                    if (clearLine === 0) {
+                        if (currShapeFallTime <= 0) {
+                            currShapeFallTime += 10;
+                            var fails = currShapeFallFails;
+                            currShapeFallFails = 0;
+                            currShapeY += 1 * currShapeInverted;
+                            tryMove(function() {
+                                currShapeY -= 1 * currShapeInverted;
+                                currShapeFallFails = fails + 1;
+                                if (currShapeFallFails < 2 && !cursed.forcedDropMode) {
+                                    return;
+                                }
+                                spawnShape();
+                            });
+                        }
+                        // currShapeFallTime -= 1;
+                        currShapeFallTime -= difficulty;
+                        if (cursed.horizontalClearing && !cursed.noClearingMode) {
+                            for (var y = 0; y < gridHeight; y++) {
+                                var filled = true;
+                                for (var x = 0; x < gridWidth; x++) {
+                                    if (grid[y][x] === -1) {
+                                        filled = false;
+                                        break;
+                                    }
+                                }
+                                if (filled) {
+                                    clearLine = 40;
+                                }
+                            }
+                        }
+                        if (cursed.verticalClearing && !cursed.noClearingMode) {
+                            for (var x = 0; x < gridWidth; x++) {
+                                var filled = true;
+                                for (var y = 0; y < gridHeight; y++) {
+                                    if (grid[y][x] === -1) {
+                                        filled = false;
+                                        break;
+                                    }
+                                }
+                                if (filled) {
+                                    clearLine = 40;
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        if (cursed.pisonFipMode) {
+                            pisonFipDropTimer = millis();
+                        }
+                        clearLine -= 1;
+                        if (clearLine === 0) {
+                            var clearedTiles = 0;
+                            var clearedLines = 0;
+                            if (cursed.horizontalClearing && !cursed.noClearingMode) {
+                                for (var y = 0; y < gridHeight; y++) {
+                                    var filled = true;
+                                    for (var x = 0; x < gridWidth; x++) {
+                                        if (grid[y][x] === -1) {
+                                            filled = false;
+                                            break;
+                                        }
+                                    }
+                                    if (filled) {
+                                        if (currShapeInverted === 1) {
+                                            for (var y1 = y - 1; y1 >= 0; y1--) {
+                                                for (var x = 0; x < gridWidth; x++) {
+                                                    grid[y1 + 1][x] = grid[y1][x];
+                                                }
+                                            }
+                                            for (var x = 0; x < gridWidth; x++) {
+                                                grid[0][x] = -1;
+                                            }
+                                            clearedLines += 1;
+                                            clearedTiles += gridWidth;
+                                            sliceStartY += 1;
+                                        }
+                                        else {
+                                            for (var y1 = y + 1; y1 < gridHeight; y1++) {
+                                                for (var x = 0; x < gridWidth; x++) {
+                                                    grid[y1 - 1][x] = grid[y1][x];
+                                                }
+                                            }
+                                            for (var x = 0; x < gridWidth; x++) {
+                                                grid[gridHeight - 1][x] = -1;
+                                            }
+                                            clearedLines += 1;
+                                            clearedTiles += gridWidth;
+                                            sliceStartY -= 1;
+                                        }
+                                    }
+                                }
+                            }
+                            if (cursed.verticalClearing && !cursed.noClearingMode) {
+                                for (var x = gridWidth - 1; x >= 0; x--) {
+                                    var filled = true;
+                                    for (var y = 0; y < gridHeight; y++) {
+                                        if (grid[y][x] === -1) {
+                                            filled = false;
+                                            break;
+                                        }
+                                    }
+                                    if (filled) {
+                                        for (var x1 = x + 1; x1 < gridWidth; x1++) {
+                                            for (var y = 0; y < gridHeight; y++) {
+                                                grid[y][x1 - 1] = grid[y][x1];
+                                            }
+                                        }
+                                        for (var y = 0; y < gridHeight; y++) {
+                                            grid[y][gridWidth - 1] = -1;
+                                        }
+                                        clearedLines += 1;
+                                        clearedTiles += gridHeight;
+                                        sliceStartX -= 1;
+                                    }
+                                }
+                            }
+                            if (cursed.reverseScoreMode) {
+                                score -= clearedTiles * clearedLines;
+                                lineScore += clearedLines;
+                                difficulty = max(difficultyScale, difficulty - clearedLines * difficultyScale);
+                            } else {
+                                score += clearedTiles * clearedLines;
+                                lineScore += clearedLines;
+                                difficulty += clearedLines * difficultyScale;
+                            }
+                            if (cursed.soundMode) {
+                                playSound2(getSound("retro/coin"));
+                            }
+                            pisonFipDifficulty += clearedLines * pisonFipDifficultyScale;
+                        }
+                    }
+                }
+                if (cursed.diffuseModeMode && random() < 0.1 * difficulty) {
+                    var x = floor(random(gridWidth));
+                    var y = floor(random(gridHeight));
+                    var directions = [];
+                    if (x > 0) {
+                        directions.push([-1, 0]);
+                    }
+                    if (y > 0) {
+                        directions.push([0, -1]);
+                    }
+                    if (x < gridWidth - 1) {
+                        directions.push([1, 0]);
+                    }
+                    if (y < gridHeight - 1) {
+                        directions.push([0, 1]);
+                    }
+                    var dir = directions[floor(random() * directions.length)];
+                    var x2 = x + dir[0];
+                    var y2 = y + dir[1];
+                    grid[y2][x2] += grid[y][x];
+                    grid[y][x] = grid[y2][x2] - grid[y][x];
+                    grid[y2][x2] -= grid[y][x];
+                }
+                var drawThisFrame = !cursed.lagMode || random() < 0.1;
+                if (cursed.pisonFipMode) {
+                    if (!gameOver) {
+                        if (millis() - pisonFipDropTimer > 1000 / pisonFipDifficulty) {
+                            pisonFipFasterAlert = 90;
+                            pisonFipDropTimer = millis();
+                            pisonFipDifficulty *= 1.5;
+                            difficulty *= 1.5;
+                        }
+                    }
+                    if (random() < 0.01 * pisonFipDifficulty) {
+                        permuteColors();
+                    }
+                    pisonFipDropTimer = millis();
+                    if (drawThisFrame) {
+                        fill2(255, 175, 125, 255 - (255 - (50 + 50 * sin(millis() / 1000 * 90 * 0.4))) * pisonFipDifficulty);
+                        rect(0, 0, width, height);
+                    }
+                } else if (drawThisFrame) {
+                    background(255, 175, 125);
+                }
+                if (cursed.badRotations) {
+                    translate(width / 2, height / 2);
+                    rotate(badRotation);
+                    translate(-width / 2, -height / 2);
+                }
+                if (cursed.badTranslations) {
+                    translate(s * badTranslationX, s * badTranslationY);
+                }
+                if (cursed.fixedCurrShape) {
+                    translate(width / 2, height / 2);
+                    rotate(-currShapeRotation * 90);
+                    translate(-width / 2, -height / 2);
+                    translate(width / 4 - s * (currShape[0].length / 2 + currShapeX), height / 2 - height / 4 * currShapeInverted - s * (currShape.length / 2 + currShapeY));
+                }
+                if (cursed.sinkTranslate || cursed.sinkRotate) {
+                    var cx = 0;
+                    var cy = 0;
+                    var total = 0;
+                    for (var y = 0; y < gridHeight; y++) {
+                        for (var x = 0; x < gridWidth; x++) {
+                            if (grid[y][x] !== -1) {
+                                total += 1;
+                                cx += x;
+                                cy += y;
+                            }
+                        }
+                    }
+                    for (var i = 0; i < currShape.length; i++) {
+                        for (var j = 0; j < currShape[i].length; j++) {
+                            if (currShape[i][j] !== "x") {
+                                continue;
+                            }
+                            var x = currShapeX + j;
+                            var y = currShapeY + i;
+                            total += 1;
+                            cx += x;
+                            cy += y;
+                        }
+                    }
+                    if (total !== 0) {
+                        cx /= total;
+                        cy /= total;
+                        if (cursed.sinkTranslate) {
+                            sinkTranslateX = lerp(sinkTranslateX, cx * s / 2, 0.001);
+                            sinkTranslateY = lerp(sinkTranslateY, cy * s / 2, 0.001);
+                            translate(sinkTranslateX, sinkTranslateY);
+                        }
+                        if (cursed.sinkRotate) {
+                            sinkRotation = lerp(sinkRotation, atan2(cx + 0.5 - gridWidth / 2, cy + 0.5 - gridHeight / 2), 0.01);
+                            translate(width / 2, height / 2);
+                            rotate(sinkRotation);
+                            translate(-width / 2, -height / 2);
+                        }
+                    }
+                }
+                if (cursed.pisonFipMode) {
+                    translate(width / 2, height / 2);
+                    scale(1 + (0.5 + sin(millis() / 1000 * 90) * 0.7) * pisonFipDifficulty);
+                    pisonFipTiltTarget += random() - 0.5;
+                    pisonFipTilt = lerp(pisonFipTilt, pisonFipTiltTarget, 0.001);
+                    rotate(pisonFipTilt);
+                    translate(-width / 2, -height / 2);
+                }
+                if (cursed.verticalCylinderMode) {
+                    translate(width / 2, height / 2);
+                    scale(3 / 4, 3 / 4);
+                    translate(-width / 2, -height / 2);
+                }
+                var x = 0;
+                var y = 0;
+                if (cursed.horizontalCylinderMode) {
+                    x = 1;
+                }
+                if (cursed.verticalCylinderMode) {
+                    y = 1;
+                }
+                if (drawThisFrame) {
+                    for (var i = -y; i <= y; i++) {
+                        for (var j = -x; j <= x; j++) {
+                            push();
+                            translate(width / 4 + width / 2 * j, height * i);
+                            drawBackground();
+                            pop();
+                        }
+                    }
+                    for (var i = -y; i <= y; i++) {
+                        for (var j = -x; j <= x; j++) {
+                            push();
+                            translate(width / 4 + width / 2 * j, height * i);
+                            drawBelow();
+                            pop();
+                        }
+                    }
+                    for (var i = -y; i <= y; i++) {
+                        for (var j = -x; j <= x; j++) {
+                            push();
+                            translate(width / 4 + width / 2 * j, height * i);
+                            drawAbove();
+                            pop();
+                        }
+                    }
+                }
+                if (cursed.pisonFipMode || cursed.previousPieceMode) {
+                    fill2(0, 0, 0);
+                    textSize(14);
+                    textAlign(CENTER, TOP);
+                    text2("Previous:", width * 7 / 8, 10);
+                    fill2(255, 255, 255);
+                    rect(width * 3 / 4 + 10, 30, width / 4 - 20, width / 4 - 20);
+                    if (previousShape.length !== 0) {
+                        var ns = width / 8 / max(previousShape.length, previousShape[0].length);
+                        for (var i = 0; i < previousShape.length; i++) {
+                            for (var j = 0; j < previousShape[i].length; j++) {
+                                if (previousShape[i][j] !== "x") {
+                                    continue;
+                                }
+                                if (previousShapeColors[i] !== undefined && previousShapeColors[i][j] !== undefined) {
+                                    setColor(previousShapeColors[i][j]);
+                                }
+                                else {
+                                    setColor(previousShapeId);
+                                }
+                                rect(width * 7 / 8 - previousShape[0].length / 2 * ns + j * ns, 20 + width / 8 - previousShape.length / 2 * ns + i * ns, ns, ns);
+                            }
+                        }
+                    }
+                }
+                else {
+                    fill2(0, 0, 0);
+                    textSize(14);
+                    textAlign(CENTER, TOP);
+                    text2("Next:", width * 7 / 8, 10);
+                    fill2(255, 255, 255);
+                    rect(width * 3 / 4 + 10, 30, width / 4 - 20, width / 4 - 20);
+                    var ns = width / 8 / max(nextShape.length, nextShape[0].length);
+                    for (var i = 0; i < nextShape.length; i++) {
+                        for (var j = 0; j < nextShape[i].length; j++) {
+                            if (nextShape[i][j] !== "x") {
+                                continue;
+                            }
+                            if (nextShapeColors[i] !== undefined && nextShapeColors[i][j] !== undefined) {
+                                setColor(nextShapeColors[i][j]);
+                            }
+                            else {
+                                setColor(nextShapeId);
+                            }
+                            rect(width * 7 / 8 - nextShape[0].length / 2 * ns + j * ns, 20 + width / 8 - nextShape.length / 2 * ns + i * ns, ns, ns);
+                        }
+                    }
+                }
+                if (cursed.wroMode && !gameOver) {
+                    textSize(20);
+                    textAlign(CENTER, TOP);
+                    if (currShapeId === 0) {
+                        if (millis() % 400 >= 200) {
+                            fill2(255, 0, 0);
+                            text2("RED PILLAR\nDETECTED\nTURNING RIGHT", width * 7 / 8, 200);
+                        }
+                    } else if (currShapeId === 3) {
+                        if (millis() % 400 >= 200) {
+                            fill2(0, 255, 0);
+                            text2("GREEN PILLAR\nDETECTED\nTURNING LEFT", width * 7 / 8, 200);
+                        }
+                    }
+                    if (cursed.backwardsRotations) {
+                        fill2(0, 0, 0);
+                        text2("U-TURN MODE", width / 8, height - 40);
+                    }
+                }
+                textSize(14);
+                fill2(0, 0, 0);
+                if (cursed.pisonFipMode) {
+                    text2("cores: " + score, width * 7 / 8, 40 + width / 4 - 20);
+                    text2("sines: " + lineScore, width * 7 / 8, 60 + width / 4 - 20);
+                }
+                else {
+                    text2("Score: " + score, width * 7 / 8, 40 + width / 4 - 20);
+                    text2("Lines: " + lineScore, width * 7 / 8, 60 + width / 4 - 20);
+                }
+                if (gameOver) {
+                    if (cursed.pisonFipMode) {
+                        fill2(255, 255, 255, 125);
+                        rect(width / 2 - 150, height / 2 - 50, 300, 140);
+                        fill2(0, 0, 0);
+                        textSize(40);
+                        text2("you wan", width / 2, height / 2 - 50);
+                        textSize(20);
+                        if (cursed.greekMode) {
+                            text(recursiveRomanNumeral("cores: ") + score, width / 2, height / 2);
+                            text(recursiveRomanNumeral("sines: ") + lineScore, width / 2, height / 2 + 30);
+                        } else {
+                            text("cores: " + score, width / 2, height / 2);
+                            text("sines: " + lineScore, width / 2, height / 2 + 30);
+                        }
+                        text2("zestart to play again", width / 2, height / 2 + 60);
+                        if (cursed.soundMode && random() < 0.2) {
+                            playSound2(getSound("retro/boom2"));
+                            playSound2(getSound("retro/rumble"));
+                            playSound2(getSound("retro/coin"));
+                            playSound2(getSound("retro/jump1"));
+                        }
+                    }
+                    else {
+                        fill2(255, 255, 255, 125);
+                        rect(width / 2 - 150, height / 2 - 50, 300, 140);
+                        fill2(0, 0, 0);
+                        textSize(40);
+                        text2("Game Over!", width / 2, height / 2 - 50);
+                        textSize(20);
+                        if (cursed.greekMode) {
+                            text(recursiveRomanNumeral("Score: ") + score, width / 2, height / 2);
+                            text(recursiveRomanNumeral("Lines: ") + lineScore, width / 2, height / 2 + 30);
+                        } else {
+                            text("Score: " + score, width / 2, height / 2);
+                            text("Lines: " + lineScore, width / 2, height / 2 + 30);
+                        }
+                        text2("Restart to play again", width / 2, height / 2 + 60);
+                    }
+                }
+                if (cursed.oneDirectionMode) {
+                    lockedLeftSignRotation = lerp(lockedLeftSignRotation, 90 + lockedLeftDirection * 90, 0.1);
+                    push();
+                    translate(width / 2, 30);
+                    rotate(lockedLeftSignRotation);
+                    strokeWeight(2);
+                    line(-20, 0, 20, 0);
+                    line(-20, 0, -10, -10);
+                    line(-20, 0, -10, 10);
+                    strokeWeight(1);
+                    pop();
+                }
+                if (cursed.horizontalCylinderMode && cursed.stickyMode && millis() % 100 > 50) {
+                    fill2(255, 0, 0);
+                    textSize(50);
+                    textAlign(CENTER, CENTER);
+                    text2("BUG MODE READY\nSPAM ROTATE TO\nACTIVATE", width / 2, height / 2);
+                }
+                fill2(0, 0, 0);
+                textSize(14);
+                textAlign(CENTER, TOP);
+                var y = 10;
+                if (autoResetOnInaccuracy) {
+                    text2("Auto Reset On", width / 8, y);
+                    y += 20;
+                }
+                var modesByRandom = {};
+                if (cursed.randomModes) {
+                    if (autoResetOnInaccuracy) {
+                        y += 20;
+                    }
+                    text2("Random Modes:", width / 8, y);
+                    y += 5;
+                    for (var i in randomModesTimers) {
+                        modesByRandom[randomModesTimers[i][0]] = true;
+                        y += 15;
+                        text2(randomModesTimers[i][0].replace("Mode", ""), width / 8, y);
+                        y += 15;
+                        stroke2(0, 0, 0);
+                        noFill();
+                        rect(width / 24, y, width / 6, 10);
+                        colorMode2(HSB);
+                        noStroke();
+                        var progress = 1 - randomModesTimers[i][1] / randomModesTimers[i][2];
+                        fill2(90 * progress, 255, 255);
+                        rect(width/ 24, y, width / 6 * (1 - progress), 10);
+                        if (!cursed.hueSaturationBalueMode) {
+                            colorMode2(RGB);
+                        }
+                        stroke2(0, 0, 0);
+                        fill2(0, 0, 0);
+                    }
+                    y += 25;
+                }
+                text2("Active Modes:", width / 8, y);
+                y += 15;
+                for (var mode in cursed) {
+                    if (cursed[mode] && !modesByRandom[mode]) {
+                        text2(mode.replace("Mode", ""), width / 8, y);
+                        y += 16;
+                    }
+                }
+                y += 15;
+                if (displayRandom) {
+                    if (cursed.heavenMode) {
+                        text2("Turns Since\nHeaven:\n" + heavenRandom + " (" + (pow(0.9, heavenRandom) * 100).toFixed(3) + "%)", width / 8, y);
+                        y += 60;
+                    }
+                    if (cursed.hellMode) {
+                        if (hellRandom >= 0) {
+                            text2("Turns Since\nHell:\n" + hellRandom + " (" + (pow(0.5, hellRandom) * 100).toFixed(3) + "%)", width / 8, y);
+                        }
+                        else {
+                            text2("Turns Of\nHell:\n" + (-hellRandom) + " (" + (pow(0.5, -hellRandom) * 100).toFixed(3) + "%)", width / 8, y);
+                        }
+                        y += 60;
+                    }
+                }
+                if (cursed.mouseMode) {
+                    text2("Mouse Mode:", width / 8, y);
+                    y += 15;
+                    text2("LMB - Rotate", width / 8, y);
+                    y += 12;
+                    text2("RMB - Drop", width / 8, y);
+                    y += 12;
+                    text2("MOUSE - Move", width / 8, y);
+                }
+                resetMatrix();
+                if (cursed.lockedMode) {
+                    colorMode2(HSB);
+                    var lines = 30;
+                    lines = ceil(difficulty * 20) - 10;
+                    // lines = 10;
+                    var resolution = 2;
+                    noFill();
+                    strokeWeight(1);
+                    for (var i = 1; i <= lines; i++) {
+                        stroke2(255 / lines * i, 255, 255);
+                        beginShape();
+                        // for (var x = 0; x <= width; x += resolution) {
+                        //     vertex(x, height / 2 + height / 4 * sin(x / width * 180 * i) * sin(millis() / 100 * i));
+                        // }
+                        for (var y = 0; y <= height; y += resolution) {
+                            vertex(width / 2 + width / 4 * sin(y / height * 180 * i) * sin(millis() / 100 * i), y);
+                        }
+                        endShape();
+                    }
+                    if (!cursed.hueSaturationBalueMode) {
+                        colorMode2(RGB);
+                    }
+                    noFill();
+                    stroke2(0, 0, 0);
+                    strokeWeight(2);
+                    beginShape();
+                    // for (var x = 0; x <= width; x += resolution) {
+                    //     var y = height / 2;
+                    //     for (var i = 1; i <= lines; i++) {
+                    //         y += height / 4 * sin(x / width * 180 * i) * sin(millis() / 100 * i) / lines;
+                    //     }
+                    //     vertex(x, y);
+                    // }
+                    for (var y = 0; y <= height; y += resolution) {
+                        var x = width / 2;
+                        for (var i = 1; i <= lines; i++) {
+                            x += width / 4 * sin(y / height * 180 * i) * sin(millis() / 100 * i) / lines;
+                        }
+                        vertex(x, y);
+                    }
+                    endShape();
+                    strokeWeight(1);
+                }
+                if (pisonFipFasterAlert > 0) {
+                    pisonFipFasterAlert--;
+                    if (pisonFipFasterAlert % 15 >= 7) {
+                        fill2(255, 0, 0);
+                        textSize(40);
+                        textAlign(CENTER, CENTER);
+                        text2("GO FASTER!!!!!\nGO FASTER!!!!!\nGO FASTER!!!!!", width / 2, height / 2);
+                    }
+                }
+                if (randomModesFlashTimer > 0) {
+                    randomModesFlashTimer--;
+                    if (randomModesFlashTimer % 15 >= 7) {
+                        fill2(255, 0, 255);
+                        textSize(40);
+                        textAlign(CENTER, CENTER);
+                        text2(randomModesFlashText, width / 2, height / 2);
+                        if (randomModesFlashText === "mouse") {
+                            fill2(0, 255, 0);
+                            text2("USE MOUSE CONTROLS", width / 2, height / 2 + 60);
+                        }
+                    }
+                }
+            };
+        };
+    </script>
+</body>
+
+</html>
