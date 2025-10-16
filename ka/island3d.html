@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Island 3D</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Island 3D</div>
+        <br>
+        [WASD] to move
+        <br>
+        Arrow keys to turn camera
+        <br>
+        [Q] and [E] to move up/down
+        <br>
+        Click to start typing in panel
+        <br>
+        Click again to stop typing
+        <br>
+        Dashes indicate word length
+        <br>
+        Press [?] while typing for first letter hint
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+
+            // WASD to move
+            // arrow keys to turn camera
+            // Q and E to move up/down
+
+            // click to start typing in panel
+            // click again to stop typing
+            // dashes indicate word length
+            // press ? while typing for hint
+
+            // all answers are a single word (except for "the same" which is 2 words)
+
+            var terriblePanels = true;
+
+            // textFont(createFont("monospace"));
+            textFont("monospace");
+
+            // (function() { return this; })().LoopProtector.prototype.leave = function() {};
+
+            var cx = 150;
+            var cy = 50;
+            var cz = 150;
+            var cdx = 1;
+            var cdy = 0;
+            var cdz = 0;
+            var cpx = 0;
+            var cpy = 0;
+            var cpz = 1;
+            var cbx = 0;
+            var cby = 1;
+            var cbz = 0;
+            var cfov = 90;
+            var ca = 270;
+            var cva = 140;
+            var cr = 0;
+
+            cfov = width / 2 / tan(cfov / 2);
+
+            var triangles = [];
+            var colors = [];
+
+            // triangles.push([[-100, 0, 100], [100, 0, 100], [100, 0, 0], [-100, 0, 0]]);
+            // for (var i = 0; i < 20; i++) {
+            //     for (var j = 0; j < 20; j++) {
+            // triangles.push([[i * 10, 0, j * 10], [i * 10, 0, j * 10 + 10], [i * 10 + 10, 0, j * 10 + 10], [i * 10 + 10, 0, j * 10]]);
+            //     }
+            // }
+
+            var panels = [];
+            var createPanel = function(x, y, z, dir, t1, t2, t3) {
+                var s = 10;
+                if (dir === 0) {
+                    triangles.push([[x - s, y - s, z - s], [x + s, y - s, z - s], [x + s, y + s, z + s], [x - s, y + s, z + s]]);
+                    panels[triangles.length - 1] = [t1, [x, y + s / 2, z + s / 2], t2, [x, y, z], "", [x, y - s / 2, z - s / 2], t3];
+                }
+                if (dir === 1) {
+                    triangles.push([[x - s, y - s, z - s], [x + s, y + s, z - s], [x + s, y + s, z + s], [x - s, y - s, z + s]]);
+                    panels[triangles.length - 1] = [t1, [x + s / 2, y + s / 2, z], t2, [x, y, z], "", [x - s / 2, y - s / 2, z], t3];
+                }
+                if (dir === 2) {
+                    triangles.push([[x - s, y + s, z - s], [x + s, y + s, z - s], [x + s, y - s, z + s], [x - s, y - s, z + s]]);
+                    panels[triangles.length - 1] = [t1, [x, y + s / 2, z - s / 2], t2, [x, y, z], "", [x, y - s / 2, z + s / 2], t3];
+                }
+                if (dir === 3) {
+                    triangles.push([[x - s, y + s, z - s], [x + s, y - s, z - s], [x + s, y - s, z + s], [x - s, y + s, z + s]]);
+                    panels[triangles.length - 1] = [t1, [x - s / 2, y + s / 2, z], t2, [x, y, z], "", [x + s / 2, y - s / 2, z], t3];
+                }
+                colors.push(color(36, 36, 36, 125));
+                if (terriblePanels) {
+                    var p = triangles.length - 1;
+                    triangles.push([[x - s, y - s * 2, z - s], triangles[p][0], triangles[p][1], [x + s, y - s * 2, z - s]]);
+                    colors.push(color(36, 36, 36, 125));
+                    triangles.push([[x - s, y - s * 2, z - s], triangles[p][0], triangles[p][3], [x - s, y - s * 2, z + s]]);
+                    colors.push(color(36, 36, 36, 125));
+                    triangles.push([[x + s, y - s * 2, z - s], triangles[p][1], triangles[p][2], [x + s, y - s * 2, z + s]]);
+                    colors.push(color(36, 36, 36, 125));
+                    triangles.push([[x + s, y - s * 2, z + s], triangles[p][2], triangles[p][3], [x - s, y - s * 2, z + s]]);
+                    colors.push(color(36, 36, 36, 125));
+                }
+            };
+
+            var selectedPanel = -1;
+            var frozen = false;
+
+            createPanel(150, 20, 120, 2, "island", "-2", "land");
+            createPanel(150, 80, 120, 2, "the same", "-1", "the opposite");
+            createPanel(60, 20, 20, 2, "open", "-1 +1", "near");
+            createPanel(120, 20, 20, 2, "redo", "-2", "do");
+            createPanel(180, 20, 20, 2, "float", "+1", "afloat");
+            createPanel(240, 20, 20, 2, "float", "-1", "sink");
+            createPanel(280, 20, 60, 1, "sad", "+1", "blue");
+            createPanel(280, 20, 120, 1, "lemon", "-1", "lime");
+            createPanel(280, 20, 180, 1, "asymmetry", "-1", "symmetry");
+            createPanel(20, 20, 60, 3, "live", "+1", "alive");
+            createPanel(20, 20, 120, 3, "like", "+1", "alike");
+            createPanel(20, 20, 180, 3, "lone", "+1", "alone");
+            createPanel(20, 20, 240, 3, "one", "+1", "lone");
+            createPanel(60, 20, 280, 0, "left", "-2", "wrong");
+            createPanel(120, 20, 280, 0, "empty", "-2", "new");
+            createPanel(180, 20, 280, 0, "kind", "-1 +1", "average");
+            createPanel(240, 20, 280, 0, "climb", "+2", "balance");
+            createPanel(90, 20, 200, 2, "", "+1 -1", "time");
+            createPanel(150, 20, 200, 2, "+1 -1", "+1 -1", "infinity");
+            createPanel(210, 20, 200, 2, "0 / 0", "+1 -1", "defined");
+
+
+            triangles.push([[0, 0, 0], [0, 0, 300], [300, 0, 300], [300, 0, 0]]);
+            triangles.push([[0, 0, 0], [0, 20, 0], [300, 20, 0], [300, 0, 0]]);
+            triangles.push([[0, 0, 0], [0, 20, 0], [0, 20, 300], [0, 0, 300]]);
+            triangles.push([[0, 0, 300], [0, 20, 300], [300, 20, 300], [300, 0, 300]]);
+            triangles.push([[300, 0, 0], [300, 20, 0], [300, 20, 300], [300, 0, 300]]);
+            colors.push(color(25, 200, 0, 125));
+            colors.push(color(25, 200, 0, 125));
+            colors.push(color(25, 200, 0, 125));
+            colors.push(color(25, 200, 0, 125));
+            colors.push(color(25, 200, 0, 125));
+
+            var renderPoint = function(x, y, z, dx, dy, dz) {
+                x -= cx;
+                y -= cy;
+                z -= cz;
+                var dot = cdx * x + cdy * y + cdz * z;
+                var near = 1;
+                if (dot < near) {
+                    var dot2 = cdx * dx + cdy * dy + cdz * dz;
+                    x += (near - dot) / dot2 * dx;
+                    y += (near - dot) / dot2 * dy;
+                    z += (near - dot) / dot2 * dz;
+                    // dot = abs(dot);
+                }
+                else {
+                    x /= dot;
+                    y /= dot;
+                    z /= dot;
+                }
+                // println(dot);
+                // if (dot > 0) {
+                //     return [0, 0, 0];
+                // // dot = abs(dot);
+                // }
+                // dot = -abs(dot);
+                return [cpx * x + cpy * y + cpz * z, -(cbx * x + cby * y + cbz * z), dot];
+                // var angle = atan2(cpx * x + cpy * y + cpz * z, dot);
+                // var angle2 = atan2(cbx * x + cby * y + cbz * z, dot);
+                // var zoom = 10;
+                // return [angle / 180 * zoom, -angle2 / 180 * zoom, dot];
+            };
+
+
+
+            var keys = [];
+            keyPressed = function() {
+                keys[keyCode] = true;
+                if (selectedPanel !== -1 && frozen && !panels[selectedPanel][7]) {
+                    if (keyCode === 8) {
+                        panels[selectedPanel][4] = panels[selectedPanel][4].substring(0, panels[selectedPanel][4].length - 1);
+                    }
+                    else if (key.toString() === "?") {
+                        panels[selectedPanel][8] = true;
+                    }
+                    else if ("abcdefghijklnmopqrstuvwxyz ".includes(key.toString()) && panels[selectedPanel][4].length < panels[selectedPanel][6].length) {
+                        panels[selectedPanel][4] += key.toString();
+                    }
+                    if (panels[selectedPanel][4] === panels[selectedPanel][6]) {
+                        panels[selectedPanel][7] = true;
+                        colors[selectedPanel] = color(0, 255, 0, 125);
+                        selectedPanel = -1;
+                        frozen = false;
+                    }
+                }
+            };
+            keyReleased = function() {
+                keys[keyCode] = false;
+            };
+
+            mousePressed = function() {
+                if (selectedPanel !== -1 && !frozen) {
+                    frozen = true;
+                }
+                else {
+                    frozen = false;
+                }
+            };
+
+            draw = function() {
+                if (keys[27]) {
+                    frozen = false;
+                }
+                if (!frozen) {
+                if (keys[37]) {
+                    ca -= 3;
+                }
+                if (keys[39]) {
+                    ca += 3;
+                }
+                if (keys[38]) {
+                    cva -= 3;
+                }
+                if (keys[40]) {
+                    cva += 3;
+                }
+                var spd = 3 / sin(cva);
+                if (abs(sin(cva)) < 1e-5) {
+                    spd = 0;
+                }
+                if (keys[65]) {
+                    cx -= -cdz * spd;
+                    cz -= cdx * spd;
+                }
+                if (keys[68]) {
+                    cx += -cdz * spd;
+                    cz += cdx * spd;
+                }
+                if (keys[87]) {
+                    cx += cdx * spd;
+                    cz += cdz * spd;
+                }
+                if (keys[83]) {
+                    cx -= cdx * spd;
+                    cz -= cdz * spd;
+                }
+                if (keys[69]) {
+                    cy += 1;
+                }
+                if (keys[81]) {
+                    cy -= 1;
+                }
+                }
+                cr = millis() / 100;
+                cdx = cos(ca) * sin(cva);
+                cdy = cos(cva);
+                cdz = sin(ca) * sin(cva);
+                cpx = -sin(ca) * 1;
+                cpy = 0;
+                cpz = cos(ca) * 1;
+                cbx = cos(ca) * -cos(cva);
+                cby = sin(cva);
+                cbz = sin(ca) * -cos(cva);
+                
+                // cdx = sin(millis() / 10);
+                // cdy = cos(millis() / 10 + 5);
+                // cdz = cos(millis() / 10 + 10);
+                // cpx = cos(millis() / 10);
+                // cpy = sin(millis() / 10 + 5);
+                // cpz = sin(millis() / 10 + 10);
+                
+                selectedPanel = -1;
+                
+                background(255, 255, 255);
+                push();
+                translate(width / 2, height / 2);
+                // scale(200);
+                // noStroke();
+                stroke(0, 0, 0);
+                for (var i = triangles.length - 1; i >= 0; i--) {
+                    fill(colors[i]);
+                    beginShape();
+                    var last = null;
+                    var intersections = 0;
+                    for (var j1 = 0; j1 < triangles[i].length + 1; j1++) {
+                        var j = j1 % triangles[i].length;
+                        var pj = (j - 1 + triangles[i].length) % triangles[i].length;
+                        var nj = (j + 1) % triangles[i].length;
+                        var p = renderPoint(triangles[i][j][0], triangles[i][j][1], triangles[i][j][2], triangles[i][pj][0] - triangles[i][j][0], triangles[i][pj][1] - triangles[i][j][1], triangles[i][pj][2] - triangles[i][j][2]);
+                        p[0] *= cfov;
+                        p[1] *= cfov;
+                        vertex(p[0], p[1]);
+                        if (last !== null) {
+                            if (p[2] >= -5 && last[1] < 0 && p[1] < 0 && ((last[0] < 0) ^ (p[0] < 0))) {
+                                intersections += 1;
+                            }
+                        }
+                        last = p;
+                        var p2 = renderPoint(triangles[i][j][0], triangles[i][j][1], triangles[i][j][2], triangles[i][nj][0] - triangles[i][j][0], triangles[i][nj][1] - triangles[i][j][1], triangles[i][nj][2] - triangles[i][j][2]);
+                        p2[0] *= cfov;
+                        p2[1] *= cfov;
+                        vertex(p2[0], p2[1]);
+                        if (last !== null) {
+                            if (p2[2] >= -5 && last[1] < 0 && p2[1] < 0 && ((last[0] < 0) ^ (p2[0] < 0))) {
+                                intersections += 1;
+                            }
+                        }
+                        last = p2;
+                    }
+                    if (intersections % 2 === 1 && panels[i] !== undefined && !panels[i][7]) {
+                        selectedPanel = i;
+                    }
+                    endShape();
+                    if (panels[i] !== undefined) {
+                        fill(255, 255, 255);
+                        var p = renderPoint(panels[i][1][0], panels[i][1][1], panels[i][1][2], 1, 0, 0);
+                        var tsize = cfov * 4;
+                        p[0] *= cfov;
+                        p[1] *= cfov;
+                        if (p[2] >= 0 && p[0] >= -width / 2 && p[0] <= width / 2 && p[1] >= -height / 2 && p[1] <= height / 2) {
+                            textAlign(CENTER, CENTER);
+                            textSize(round(tsize / p[2]));
+                            text(panels[i][0], round(p[0]), round(p[1]));
+                        }
+                        var p1 = renderPoint(panels[i][3][0], panels[i][3][1], panels[i][3][2], 1, 0, 0);
+                        p1[0] *= cfov;
+                        p1[1] *= cfov;
+                        if (p1[2] >= 0 && p1[0] >= -width / 2 && p1[0] <= width / 2 && p1[1] >= -height / 2 && p1[1] <= height / 2) {
+                            textAlign(CENTER, CENTER);
+                            textSize(round(tsize / p1[2]));
+                            text(panels[i][2], round(p1[0]), round(p1[1]));
+                        }
+                        var p2 = renderPoint(panels[i][5][0], panels[i][5][1], panels[i][5][2], 1, 0, 0);
+                        p2[0] *= cfov;
+                        p2[1] *= cfov;
+                        if (p2[2] >= 0 && p2[0] >= -width / 2 && p2[0] <= width / 2 && p2[1] >= -height / 2 && p2[1] <= height / 2) {
+                            textAlign(CENTER, CENTER);
+                            textSize(round(tsize / p2[2]));
+                            if (panels[i][4] === "") {
+                                var underscores = "";
+                                for (var k = 0; k < panels[i][6].length; k++) {
+                                    if (k === 0 && panels[i][8]) {
+                                        underscores += panels[i][6][0];
+                                    }
+                                    else {
+                                        if (panels[i][6][k] === " ") {
+                                            underscores += " ";
+                                        }
+                                        else {
+                                            underscores += "-";
+                                        }
+                                    }
+                                }
+                                fill(255, 255, 255, 125);
+                                text(underscores, round(p2[0]), round(p2[1]));
+                            }
+                            else {
+                                text(panels[i][4], round(p2[0]), round(p2[1]));
+                            }
+                        }
+                    }
+                }
+                
+                pop();
+                
+                strokeWeight(4);
+                stroke(0, 0, 0);
+                point(width / 2, height / 2);
+                strokeWeight(1);
+                
+                if (frozen) {
+                    fill(0, 0, 0);
+                    rect(0, 0, width, 10);
+                    rect(0, 0, 10, height);
+                    rect(0, height - 10, width, 10);
+                    rect(width - 10, 0, 10, height);
+                }
+            };
+        };
+    </script>
+</body>
+
+</html>

@@ -20,6 +20,10 @@
     <div>
         <div style="font-size: 32px;">Pixel Simulator</div>
         <br>
+        Save Code:
+        <textarea id="saveCodeInput"></textarea>
+        <button id="loadSaveCode">Load Save Code</button>
+        <br>
         Click to create pixels
         <br>
         Use arrow keys to change the size of the pixel you create
@@ -41,12 +45,11 @@
     <script src="./p5.min.js"></script>
     <script src="./common.js"></script>
     <script>
-
         function setup() {
             createCanvas(600, 600);
             document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
             angleMode(DEGREES);
-            
+
             // click to create pixels
             // use arrow keys to change the size of the pixel you create
             // press [r] for rain
@@ -395,6 +398,88 @@
                     throw "Invalid Save Code";
                 }
             }
+            
+            loadSaveCode.onclick = function() {
+                saveCode = saveCodeInput.value;
+                try{
+                    var x = 0;
+                    var y = 0;
+                    var incrementPosition = function(){
+                        x += 1;
+                        if(x === gridSize){
+                            x = 0;
+                            y += 1;
+                        }
+                        if(y === gridSize){
+                            y -= 1;
+                            x = gridSize - 1;
+                        }
+                    };
+                    var parseSaveCode = function(inputSaveCode){
+                        var stringStartIndex = 0;
+                        var string = "";
+                        var numberStartIndex = 0;
+                        var loopedSaveCodeStartIndex = 0;
+                        var loopTimesStartIndex = 0;
+                        var inLoop = 0;
+                        for(var i = 0;i < inputSaveCode.length;i++){
+                            if(inputSaveCode[i] === ":" && inLoop === 0){
+                                if(string === ""){
+                                    string = inputSaveCode.substring(stringStartIndex,i);
+                                    grid[y][x] = string;
+                                    incrementPosition();
+                                    string = "";
+                                    stringStartIndex = i + 1;
+                                }
+                                else{
+                                    for(var j = 0;j < parseInt(inputSaveCode.substring(numberStartIndex,i),10);j++){
+                                        grid[y][x] = string;
+                                        incrementPosition();
+                                    }
+                                    string = "";
+                                    stringStartIndex = i + 1;
+                                }
+                            }
+                            if(inputSaveCode[i] === "-" && inLoop === 0){
+                                string = inputSaveCode.substring(stringStartIndex,i);
+                                numberStartIndex = i + 1;
+                            }
+                            if(inputSaveCode[i] === ";" && inLoop === 0){
+                                gridSize = parseInt(inputSaveCode.substring(0,i),10);
+                                createGrid();
+                                string = "";
+                                stringStartIndex = i + 1;
+                            }
+                            if(inputSaveCode[i] === "{"){
+                                if(inLoop === 0){
+                                    loopedSaveCodeStartIndex = i + 1;
+                                }
+                                inLoop += 1;
+                            }
+                            if(inputSaveCode[i] === "}"){
+                                inLoop -= 1;
+                                if(inLoop === 0){
+                                    loopTimesStartIndex = i + 1;
+                                }
+                            }
+                            if(inputSaveCode[i] === "|"){
+                                if(inLoop === 0){
+                                    var loopTimes = parseInt(inputSaveCode.substring(loopTimesStartIndex,i),10);
+                                    for(var j = 0;j < loopTimes;j++){
+                                        parseSaveCode(inputSaveCode.substring(loopedSaveCodeStartIndex,loopTimesStartIndex - 1));
+                                    }
+                                    string = "";
+                                    stringStartIndex = i + 1;
+                                }
+                            }
+                        }
+                    };
+                    parseSaveCode(saveCode);
+                }
+                catch(error){
+                    throw "Invalid Save Code";
+                }
+            };
 
             var drawPixel = function(x,y,width,height){
                 rect(x * xScale,y * yScale,xScale * width,yScale * height);
