@@ -26,6 +26,10 @@
         <br>
         Credit: SPsquared
         <br>
+        Active Random Modes:
+        <br>
+        <div id="randomModesInput"></div>
+        <br>
         <a href="/index.html">Back to home page</a>
     </div>
     <script src="./p5.min.js"></script>
@@ -133,6 +137,36 @@
                 "additiveMode",
                 "pisonFipMode"
             ];
+            for (let i in cursed) {
+                let input = document.createElement("input");
+                input.name = i;
+                input.type = "checkbox";
+                for (let j in randomModesOptions) {
+                    if (randomModesOptions[j] == i) {
+                        input.checked = true;
+                    }
+                }
+                input.oninput = function() {
+                    if (input.checked) {
+                        randomModesOptions.push(i);
+                    }
+                    else {
+                        for (let j in randomModesOptions) {
+                            if (randomModesOptions[j] == i) {
+                                randomModesOptions.splice(j, 1);
+                                break;
+                            }
+                        }
+                    }
+                };
+                let label = document.createElement("label");
+                label.for = i;
+                label.innerText = i;
+                randomModesInput.appendChild(label);
+                randomModesInput.appendChild(input);
+                let br = document.createElement("br");
+                randomModesInput.appendChild(br);
+            }
             var randomModesFrequency = 0.3;
             var randomModesTimeRange = [2, 10];
             var randomModesDifficultyScale = 0.001;
@@ -1402,11 +1436,12 @@
                     Program.restart();
                 }
             };
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
                 if (gameOver || clearLine > 0 || cursed.mouseMode) {
                     return;
                 }
-                doAction(keyCode);
+                doAction(e.keyCode);
             };
             mousePressed = function() {
                 if (gameOver || clearLine > 0 || !cursed.mouseMode) {

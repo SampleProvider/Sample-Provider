@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Fluid Simulation</title>
+    <link rel="icon" href="./img/favicon.png" type="image/x-icon">
+    <style>
+        * {
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div style="font-size: 32px;">Fluid Simulation</div>
+        <br>
+        Left click to create walls
+        <br>
+        Right click to remove walls
+        <br>
+        Arrow keys to change brush size
+        <br>
+        <a href="/index.html">Back to home page</a>
+    </div>
+    <script src="./p5.min.js"></script>
+    <script src="./common.js"></script>
+    <script>
+        function setup() {
+            createCanvas(600, 600);
+            document.body.insertBefore(document.querySelector("canvas"), document.body.children[0]);
+            angleMode(DEGREES);
+
+            // left click to create walls
+            // right click to remove walls
+            // arrow keys to change brush size
+
+            // (function() { return this; })().LoopProtector.prototype.leave = function() {};
+
+            // definitely not flow pixel simulator
+
+            var gridSize = 100;
+            var s = width / gridSize;
+
+            var brushSize = 3;
+
+            var grid = [];
+            var nextGrid = [];
+            var obstacleGrid = obstacleGrid || [];
+            obstacleGrid = [];
+
+            for (var i = 0; i < gridSize; i++) {
+                grid[i] = [];
+                nextGrid[i] = [];
+                if (obstacleGrid.length !== gridSize) {
+                    obstacleGrid[i] = [];
+                }
+                for (var j = 0; j < gridSize; j++) {
+                    grid[i][j] = [0, 0, 0];
+                    nextGrid[i][j] = [0, 0, 0];
+                    if (obstacleGrid[i].length !== gridSize) {
+                        obstacleGrid[i][j] = false;
+                        if (dist(j, i, gridSize / 2, gridSize / 2) < 10) {
+                            obstacleGrid[i][j] = true;
+                        }
+                    }
+                }
+            }
+
+
+            for (var y = 0; y < gridSize; y++) {
+                for (var x = 0; x < gridSize; x++) {
+                    // grid[y][x][2] = random(1000);
+                    grid[y][x][2] = random(1);
+                }
+            }
+
+            var update = function() {
+                for (var y = 0; y < gridSize; y++) {
+                    for (var x = 0; x < gridSize; x++) {
+                        // if (grid[y][x][2] === 0) {
+                        //     continue;
+                        // }
+                        // spdX, spdY, temp
+                        var p = [grid[y][x][0], grid[y][x][1], grid[y][x][2]];
+                        // p[2] = max(p[2] - 1, 0);
+                        // p[2] = max(p[2] * 0.97, 0);
+                        // nextGrid[y][x][1] -= nextGrid[y][x][2] / 255;
+                        // p[1] -= p[2] / 255 / 3;
+                        // p[1] -= p[2] / 255;
+                        // p[1] += 0.04;
+                        // p[1] += 0.06;
+                        // p[1] += 0.03;
+                        var average = p[2];
+                        var averageSpdX = p[0];
+                        var averageSpdY = p[1];
+                        var t = 1;
+                        if (x !== 0) {
+                            averageSpdX += grid[y][x - 1][0];
+                            averageSpdY += grid[y][x - 1][1];
+                            average += grid[y][x - 1][2];
+                            t++;
+                        }
+                        if (x !== gridSize - 1) {
+                            averageSpdX += grid[y][x + 1][0];
+                            averageSpdY += grid[y][x + 1][1];
+                            average += grid[y][x + 1][2];
+                            t++;
+                        }
+                        if (y !== 0) {
+                            averageSpdX += grid[y - 1][x][0];
+                            averageSpdY += grid[y - 1][x][1];
+                            average += grid[y - 1][x][2];
+                            t++;
+                        }
+                        if (y !== gridSize - 1) {
+                            averageSpdX += grid[y + 1][x][0];
+                            averageSpdY += grid[y + 1][x][1];
+                            average += grid[y + 1][x][2];
+                            t++;
+                        }
+                        average /= t;
+                        averageSpdX /= t;
+                        averageSpdY /= t;
+                        // p[0] = p[0] * 0.8 + averageSpdX * 0.2;
+                        // p[1] = p[1] * 0.8 + averageSpdY * 0.2;
+                        var multiplier = 0.01;
+                        // multiplier = 0.02;
+                        // multiplier = 0.005;
+                        if (x !== 0 && !obstacleGrid[y][x - 1]) {
+                            // p[0] += (grid[y][x - 1][2] - average) * multiplier;
+                            // var a = grid[y][x - 1];
+                            // var dot = grid[y][x][0] * a[0] + grid[y][x][1] * a[1];
+                            // dot /= sqrt(grid[y][x][0]*grid[y][x][0]+grid[y][x][1]*grid[y][x][1]);
+                            // dot /= sqrt(a[0]*a[0]+a[1]*a[1]);
+                            var cm = multiplier;
+                            // if (dot < 0) {
+                            //     cm *= -1;
+                            // }
+                            // if (!isNaN(dot)) {
+                            //     cm *= dot;
+                            // }
+                            p[0] += (grid[y][x - 1][2] - p[2]) * cm;
+                        }
+                        if (x !== gridSize - 1 && !obstacleGrid[y][x + 1]) {
+                            // p[0] -= (grid[y][x + 1][2] - average) * multiplier;
+                            // var a = grid[y][x + 1];
+                            // var dot = grid[y][x][0] * a[0] + grid[y][x][1] * a[1];
+                            // dot /= sqrt(grid[y][x][0]*grid[y][x][0]+grid[y][x][1]*grid[y][x][1]);
+                            // dot /= sqrt(a[0]*a[0]+a[1]*a[1]);
+                            var cm = multiplier;
+                            // if (dot < 0) {
+                            //     // cm *= -1;
+                            // }
+                            // if (!isNaN(dot)) {
+                            //     cm *= dot;
+                            // }
+                            p[0] -= (grid[y][x + 1][2] - p[2]) * cm;
+                        }
+                        if (y !== 0 && !obstacleGrid[y - 1][x]) {
+                            // p[1] += (grid[y - 1][x][2] - average) * multiplier;
+                            // var a = grid[y - 1][x];
+                            // var dot = grid[y][x][0] * a[0] + grid[y][x][1] * a[1];
+                            // dot /= sqrt(grid[y][x][0]*grid[y][x][0]+grid[y][x][1]*grid[y][x][1]);
+                            // dot /= sqrt(a[0]*a[0]+a[1]*a[1]);
+                            var cm = multiplier;
+                            // if (dot < 0) {
+                            //     // cm *= -1;
+                            // }
+                            // if (!isNaN(dot)) {
+                            //     cm *= dot;
+                            // }
+                            p[1] += (grid[y - 1][x][2] - p[2]) * cm;
+                        }
+                        if (y !== gridSize - 1 && !obstacleGrid[y + 1][x]) {
+                            // p[1] -= (grid[y + 1][x][2] - average) * multiplier;
+                            // var a = grid[y + 1][x];
+                            // var dot = grid[y][x][0] * a[0] + grid[y][x][1] * a[1];
+                            // dot /= sqrt(grid[y][x][0]*grid[y][x][0]+grid[y][x][1]*grid[y][x][1]);
+                            // dot /= sqrt(a[0]*a[0]+a[1]*a[1]);
+                            var cm = multiplier;
+                            // if (dot < 0) {
+                            //     // cm *= -1;
+                            // }
+                            // if (!isNaN(dot)) {
+                            //     cm *= dot;
+                            // }
+                            p[1] -= (grid[y + 1][x][2] - p[2]) * cm;
+                        }
+                        // p[2] = average;
+                        // p[2] = p[2] * 0.9 + average * 0.1;
+                        // p[2] = p[2] * 0.8 + average * 0.2;
+                        // p[0] *= 0.9;
+                        // p[1] *= 0.9;
+                        // if (x === gridSize - 1 && y === gridSize - 1) {
+                        //     println(p[0]);
+                        // }
+                        var nx = x + round(p[0]);
+                        var ny = y + round(p[1]);
+                        if (nx < 0 || nx > gridSize - 1 || ny < 0 || ny > gridSize - 1 || obstacleGrid[ny][nx]) {
+                            p[0] *= 0.9;
+                            p[1] *= 0.9;
+                            // p[0] = 0;
+                            // p[1] = 0;
+                        }
+                        var steps = 3;
+                        var obstacles = 0;
+                        for (var i = 0; i < steps; i++) {
+                            var x1 = min(max(x + round(p[0] * i / (steps - 1)), 0), gridSize - 1);
+                            var y1 = min(max(y + round(p[1] * i / (steps - 1)), 0), gridSize - 1);
+                            if (obstacleGrid[y1][x1]) {
+                                obstacles += 1;
+                            }
+                        }
+                        var substeps = steps - obstacles;
+                        for (var i = 0; i < steps; i++) {
+                            var x1 = min(max(x + round(p[0] * i / (steps - 1)), 0), gridSize - 1);
+                            var y1 = min(max(y + round(p[1] * i / (steps - 1)), 0), gridSize - 1);
+                            if (obstacleGrid[y1][x1]) {
+                                continue;
+                            }
+                            // if ((nextGrid[y1][x1][2] + p[2] / substeps) !== 0) {
+                            //     nextGrid[y1][x1][0] = (nextGrid[y1][x1][0] * nextGrid[y1][x1][2] + p[0] * p[2] / substeps) / (nextGrid[y1][x1][2] + p[2] / substeps);
+                            //     nextGrid[y1][x1][1] = (nextGrid[y1][x1][1] * nextGrid[y1][x1][2] + p[1] * p[2] / substeps) / (nextGrid[y1][x1][2] + p[2] / substeps);
+                            // }
+                            nextGrid[y1][x1][0] += p[0] / substeps;
+                            nextGrid[y1][x1][1] += p[1] / substeps;
+                            nextGrid[y1][x1][2] += p[2] / substeps;
+                        }
+                    }
+                }
+                for (var y = 0; y < gridSize; y++) {
+                    for (var x = 0; x < gridSize; x++) {
+                        if (obstacleGrid[y][x]) {
+                            grid[y][x] = [0, 0, 0];
+                            continue;
+                        }
+                        grid[y][x] = nextGrid[y][x];
+                        nextGrid[y][x] = [0, 0, 0];
+                    }
+                }
+            };
+
+            var keys = [];
+            keyPressed = function() {
+                keys[keyCode] = true;
+                if (keyCode === 38) {
+                    brushSize = min(brushSize + 1, 10);
+                }
+                if (keyCode === 40) {
+                    brushSize = max(brushSize - 1, 0);
+                }
+            };
+            keyReleased = function() {
+                keys[keyCode] = false;
+            };
+
+            var fps = [];
+            draw = function() {
+                // return;
+                if (mouseIsPressed) {
+                    var x = floor(mouseX / s);
+                    var y = floor(mouseY / s);
+                    for (var y1 = max(y - brushSize + 1, 0); y1 <= min(y + brushSize - 1, gridSize - 1); y1++) {
+                        for (var x1 = max(x - brushSize + 1, 0); x1 <= min(x + brushSize - 1, gridSize - 1); x1++) {
+                            if (dist(x1, y1, x, y) <= brushSize) {
+                                if (mouseButton === LEFT && !keys[16]) {
+                                    obstacleGrid[y1][x1] = true;
+                                }
+                                else {
+                                    obstacleGrid[y1][x1] = false;
+                                }
+                                // grid[y1][x1][2] = 255;
+                            }
+                        }
+                    }
+                }
+                for (var i = 0; i < gridSize; i++) {
+                    grid[gridSize - 1][i][2] += 20;
+                    // grid[gridSize - 1][i][1] = -2;
+                    grid[0][i][2] = 0;
+                    // grid[gridSize - 1][i] = [0, 0, 155];
+                    // nextGrid[gridSize - 1][i][2] = 20;
+                    // nextGrid[0][i][2] = -20;
+                    // grid[gridSize - 1][i][2] *= 1.1;
+                    // nextGrid[gridSize - 2][i][2] = 20;
+                    // nextGrid[gridSize - 3][i][2] = 20;
+                    // nextGrid[gridSize - 4][i][2] = 40;
+                    // nextGrid[gridSize - 20][i][2] = 40;
+                    // nextGrid[gridSize - 50][i][2] = 20;
+                    // nextGrid[0][i][2] = 20;
+                }
+                var ballX = floor(gridSize / 2 + cos(millis() / 10) * 20);
+                var ballY = floor(gridSize / 2 + sin(millis() / 10) * 20);
+                var r = 7 - 4;
+                for (var y = ballY - r + 1; y <= ballY + r; y++) {
+                    for (var x = ballX - r + 1; x <= ballX + r; x++) {
+                        if (dist(ballX + 0.5, ballY + 0.5, x, y) <= r) {
+                            // grid[gridSize - 1][i] = [0, 0, 155];
+                            // nextGrid[y][x][2] = 40;
+                        }
+                    }
+                }
+                update();
+                // background(0, 0, 0);
+                fill(0, 0, 0, 25);
+                rect(0, 0, width, height);
+                noStroke();
+                colorMode(HSB);
+                for (var y = 0; y < gridSize; y++) {
+                    for (var x = 0; x < gridSize; x++) {
+                        // if (obstacleGrid[y][x]) {
+                        //     fill(125, 125, 125);
+                        //     noStroke();
+                        //     rect(x * s, y * s, s, s);
+                        // }
+                        // if (dist(0, 0, grid[y][x][0], grid[y][x][1]) < 1) {
+                        //     continue;
+                        // }
+                        if (dist(0, 0, grid[y][x][0], grid[y][x][1]) < 0.5) {
+                            continue;
+                        }
+                        if (grid[y][x][2] < 10) {
+                            continue;
+                        }
+                        fill(round(min(grid[y][x][2] * 0.2, 42)), 255, round(grid[y][x][2] * 10));
+                        // fill(round(min(grid[y][x][3] * 100, 42)), 255, round(grid[y][x][3] * 10 + 200));
+                        // var c = color(round(min(grid[y][x][2] * 0.2, 42)), 255, round(grid[y][x][2] * 10));
+                        // c = color(255, 0, 0);
+                        // stroke(255, 0, 255);
+                        stroke(round(min(grid[y][x][2] * 0.2, 42)), 255, round(grid[y][x][2] * 10));
+                        line(x * s + s / 2, y * s + s / 2, x * s + s / 2 + grid[y][x][0] * s, y * s + s / 2 + grid[y][x][1] * s);
+                        // rect(x * s, y * s, s, s);
+                        // for (var ys = 0; ys < s; ys++) {
+                        //     for (var xs = 0; xs < s; xs++) {
+                        //         pixels[(x * s + xs + (y * s + ys) * width) * 4] = red(c);
+                        //         pixels[(x * s + xs + (y * s + ys) * width) * 4 + 1] = green(c);
+                        //         pixels[(x * s + xs + (y * s + ys) * width) * 4 + 2] = blue(c);
+                        //         pixels[(x * s + xs + (y * s + ys) * width) * 4 + 3] = 255;
+                        //     }
+                        // }
+                    }
+                }
+                noStroke();
+                colorMode(RGB);
+                for (var y = 0; y < gridSize; y++) {
+                    for (var x = 0; x < gridSize; x++) {
+                        if (obstacleGrid[y][x]) {
+                            fill(125, 125, 125);
+                            noStroke();
+                            rect(x * s, y * s, s, s);
+                        }
+                    }
+                }
+                var x = floor(mouseX / s);
+                var y = floor(mouseY / s);
+                for (var y1 = max(y - brushSize + 1, 0); y1 <= min(y + brushSize - 1, gridSize - 1); y1++) {
+                    for (var x1 = max(x - brushSize + 1, 0); x1 <= min(x + brushSize - 1, gridSize - 1); x1++) {
+                        if (dist(x1, y1, x, y) <= brushSize) {
+                            fill(255, 255, 255, 50);
+                            rect(x1 * s, y1 * s, s, s);
+                        }
+                    }
+                }
+                // loadPixels();
+                //         for (var ys = 0; ys < 10; ys++) {
+                //             for (var xs = 0; xs < 10; xs++) {
+                //                 var c = color(0, 255, 255);
+                //                 pixels[(xs + (ys) * width) * 4] = 255;
+                //                 pixels[(xs + (ys) * width) * 4 + 1] = 255;
+                //                 pixels[(xs + (ys) * width) * 4 + 2] = 255;
+                //                 pixels[(xs + (ys) * width) * 4 + 3] = 255;
+                //             }
+                //         }
+                // updatePixels();
+                // fill(50, 255, 255);
+                // rect(0, 0, 300, 600);
+                // fill(50.7, 255, 255);
+                // rect(300, 0, 300, 600);
+                fps.push(millis());
+                while (millis() - fps[0] > 1000) {
+                    fps.shift();
+                }
+                fill(255, 255, 255);
+                // fill(0, 0, 0);
+                text("FPS: " + fps.length, 2, 14);
+            };
+        };
+    </script>
+</body>
+
+</html>
