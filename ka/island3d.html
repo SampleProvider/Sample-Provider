@@ -194,7 +194,9 @@
 
 
             var keys = [];
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 keys[keyCode] = true;
                 if (selectedPanel !== -1 && frozen && !panels[selectedPanel][7]) {
                     if (keyCode === 8) {
@@ -214,7 +216,9 @@
                     }
                 }
             };
-            keyReleased = function() {
+            document.onkeyup = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 keys[keyCode] = false;
             };
 

@@ -1958,7 +1958,9 @@
                     transition = 120;
                 }
             };
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 keys[keyCode] = true;
                 if (transition) {
                     return;
@@ -2039,7 +2041,9 @@
                     }
                 }
             };
-            keyReleased = function() {
+            document.onkeyup = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 keys[keyCode] = false;
             };
 

@@ -247,7 +247,9 @@
             };
 
             var keys = [];
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 keys[keyCode] = true;
                 if (keyCode === 38) {
                     brushSize = min(brushSize + 1, 10);
@@ -256,7 +258,9 @@
                     brushSize = max(brushSize - 1, 0);
                 }
             };
-            keyReleased = function() {
+            document.onkeyup = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 keys[keyCode] = false;
             };
 

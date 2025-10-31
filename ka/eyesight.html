@@ -1256,7 +1256,9 @@
             var time = millis();
             var repeatTime = 40;
 
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 if (millis() - time < repeatTime) {
                     return;
                 }

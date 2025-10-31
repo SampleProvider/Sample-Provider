@@ -1189,7 +1189,9 @@
 
             var win = 0;
 
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 if (linesEnabled && keyCode === 32) {
                     linesOn = !linesOn;
                 }

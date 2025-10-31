@@ -528,7 +528,9 @@
 
             var checkpoints = [];
 
-            keyPressed = function() {
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 if (millis() - time < repeatTime) {
                     return;
                 }

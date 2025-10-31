@@ -4309,7 +4309,9 @@
                 }
             };
 
-            keyPressed = function(){
+            document.onkeydown = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 if(keyCode === 82){
                     for(var i = 0;i < gridSize;i++){
                         if(grid[0][i] === "air" && random() < 0.25){
@@ -4362,7 +4364,9 @@
                     clickSize = max(1,clickSize);
                 }
             };
-            keyReleased = function(){
+            document.onkeyup = function(e) {
+                e.preventDefault();
+                let keyCode = e.keyCode;
                 if(keyCode === 80){
                     pixelPickerOpen = !pixelPickerOpen;
                 }
